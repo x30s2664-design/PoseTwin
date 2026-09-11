@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoseTwin v8.2.1 | 15-Segment Teaching Mannequin</title>
+<title>PoseTwin v8.3 | 15-Segment Teaching Mannequin</title>
 <style>
 :root{
   color-scheme:dark;
@@ -84,6 +84,16 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
 .model-build.ready .model-build-title{color:#aef6e8}
 .model-build.error .model-build-title{color:#ffbac3}
 
+
+.view-badge{
+  position:absolute;right:10px;top:10px;z-index:5;pointer-events:none;
+  padding:7px 10px;border-radius:10px;border:1px solid rgba(110,231,207,.45);
+  background:rgba(0,0,0,.68);color:#dffdf7;font-size:.76rem;line-height:1.35;
+  font-variant-numeric:tabular-nums;backdrop-filter:blur(4px)
+}
+.view-badge b{color:#6ee7cf}
+.view-badge.warn{border-color:rgba(255,207,92,.55);color:#ffe9a8}
+
 </style>
 </head>
 <body>
@@ -97,7 +107,7 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
 <header>
   <div class="brand">
     <div class="logo">🦴</div>
-    <div><h1>PoseTwin</h1><p>原始影像 × 教學模仿｜15 節段 3D 人體模型</p></div>
+    <div><h1>PoseTwin</h1><p>原始影像 × 教學模仿｜自動視角修正 × 15 節段 3D 人體模型</p></div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div id="modelStatus" class="status"><span class="dot"></span><span>載入 AI 模型中…</span></div><button id="retryModelBtn" type="button" style="display:none">↻ 重試模型</button></div>
 </header>
@@ -143,6 +153,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
       <div id="analysisGrid" class="analysis-grid">
         <div class="analysis-label">POSE PROCESSING GRID</div>
       </div>
+      <div id="viewBadge" class="view-badge"><b>AUTO VIEW</b><br>等待人體…</div>
       <div id="leftEmpty" class="empty"><div><div class="ico">🎞️</div><b>上傳影片或開啟相機</b><p>真人影像會顯示在左側。</p></div></div>
     </div>
   </article>
@@ -176,6 +187,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
     <label class="check"><input id="autoRotate" type="checkbox"> 自動旋轉</label>
     <label class="check"><input id="floorLock" type="checkbox" checked> 腳底貼地</label>
     <label class="check"><input id="keepRoot" type="checkbox" checked> 保留位移</label>
+    <label class="check"><input id="autoViewCorrection" type="checkbox" checked> 自動視角／空間修正</label>
     <label class="check"><input id="mirrorMode" type="checkbox" checked> 鏡像模仿</label>
     <label class="check"><input id="ghostMode" type="checkbox" checked> 動作殘影</label>
     <label class="check">播放速度
@@ -196,7 +208,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
 </section>
 
 <p class="help">
-  PoseTwin v8.2.1：v8.2 使用 15 節段 3D 教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v8.2.1 完全移除 VRM，並修正 GPU / Full 成功後中間狀態卡片未切換為「模型已就緒」的問題。右側固定使用輕量 15 節段 3D 教學人偶；上軀幹與骨盆使用兩格橢圓圓柱體，分別跟隨肩線與髖線旋轉。
+  PoseTwin v8.3：v8.2 使用 15 節段 3D 教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v8.2.1 完全移除 VRM，並修正 GPU / Full 成功後中間狀態卡片未切換為「模型已就緒」的問題。右側固定使用輕量 15 節段 3D 教學人偶；上軀幹與骨盆使用兩格橢圓圓柱體，分別跟隨肩線與髖線旋轉。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -224,7 +236,7 @@ const els={
  timeLabel:$("#timeLabel"),fileMeta:$("#fileMeta"),leftEmpty:$("#leftEmpty"),rightEmpty:$("#rightEmpty"),
  status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),modelBuildCard:$("#modelBuildCard"),modelBuildTitle:$("#modelBuildTitle"),modelBuildState:$("#modelBuildState"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
  snapshotBtn:$("#snapshotBtn"),resetViewBtn:$("#resetViewBtn"),recordStatus:$("#recordStatus"),
- showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),backViewBtn:$("#backViewBtn"),sideViewBtn:$("#sideViewBtn")
+ showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),viewBadge:$("#viewBadge"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),autoViewCorrection:$("#autoViewCorrection"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),backViewBtn:$("#backViewBtn"),sideViewBtn:$("#sideViewBtn")
 };
 
 let poseLandmarker=null,objectUrl=null,mediaStream=null,mode="none",facingMode="user";
@@ -531,9 +543,128 @@ function resetBodyCalibration(){
  clearGhosts();calibrated=false;baseHip=null;
  for(const k of Object.keys(filtered))delete filtered[k];
 }
+
+// ===== v8.3 Auto Viewpoint / Spatial Stabilizer =====
+let viewState={yaw:0,label:"FRONT",display:"正面",confidence:0,lastYaw:0};
+
+function clampRad(v,deg){
+ const r=THREE.MathUtils.degToRad(deg);
+ return Math.max(-r,Math.min(r,v));
+}
+function visibilityOf(lm,index){
+ const v=lm?.[index]?.visibility;
+ return Number.isFinite(v)?v:1;
+}
+function mean(a,b){return (a+b)*.5}
+
+function estimateViewpoint(result){
+ const l2=result?.landmarks?.[0];
+ const lw=result?.worldLandmarks?.[0];
+ if(!l2||!lw)return viewState;
+
+ // Shoulder and pelvis yaw are fused. World landmarks are camera-relative.
+ const sdx=lw[12].x-lw[11].x, sdz=lw[12].z-lw[11].z;
+ const hdx=lw[24].x-lw[23].x, hdz=lw[24].z-lw[23].z;
+ const syaw=Math.atan2(sdz,Math.max(.001,Math.abs(sdx)));
+ const hyaw=Math.atan2(hdz,Math.max(.001,Math.abs(hdx)));
+ let yaw=syaw*.65+hyaw*.35;
+
+ // Smooth viewpoint to prevent FRONT/SIDE flicker.
+ const delta=Math.atan2(Math.sin(yaw-viewState.lastYaw),Math.cos(yaw-viewState.lastYaw));
+ yaw=viewState.lastYaw+delta*.18;
+ viewState.lastYaw=yaw;
+
+ const absDeg=Math.abs(THREE.MathUtils.radToDeg(yaw));
+
+ // Face visibility helps distinguish front-ish vs back-ish. This is intentionally conservative.
+ const faceVis=(visibilityOf(l2,0)+visibilityOf(l2,2)+visibilityOf(l2,5)+visibilityOf(l2,7)+visibilityOf(l2,8))/5;
+ let backish=faceVis<.42 && absDeg<58;
+
+ let label,display;
+ if(backish){
+   label="BACK";display="背面";
+ }else if(absDeg<22){
+   label="FRONT";display="正面";
+ }else if(absDeg<62){
+   label=yaw>=0?"RIGHT_45":"LEFT_45";
+   display=yaw>=0?"右斜面":"左斜面";
+ }else{
+   label=yaw>=0?"RIGHT_SIDE":"LEFT_SIDE";
+   display=yaw>=0?"右側面":"左側面";
+ }
+
+ const shoulderScreen=Math.abs(l2[12].x-l2[11].x);
+ const hipScreen=Math.abs(l2[24].x-l2[23].x);
+ const confidence=Math.max(0,Math.min(1,(shoulderScreen+hipScreen)*1.8 + .15));
+
+ viewState={yaw,label,display,confidence,lastYaw:yaw};
+
+ if(els.viewBadge){
+   const deg=Math.round(THREE.MathUtils.radToDeg(yaw));
+   els.viewBadge.classList.toggle("warn",confidence<.45);
+   els.viewBadge.innerHTML=`<b>AUTO VIEW</b><br>${display} · ${deg>0?"+":""}${deg}°<br>${confidence<.45?"視角判斷較弱":"空間修正中"}`;
+ }
+ return viewState;
+}
+
+function stabilizedBodyAxes(result,q){
+ const l2=result?.landmarks?.[0];
+ if(!l2){
+   return {
+     shoulder:unitFrom(q.LS,q.RS,new THREE.Vector3(1,0,0)),
+     pelvis:unitFrom(q.LH,q.RH,new THREE.Vector3(1,0,0)),
+     torso:unitFrom(mid(q.LH,q.RH),mid(q.LS,q.RS),new THREE.Vector3(0,1,0))
+   };
+ }
+
+ const vs=estimateViewpoint(result);
+ const yaw=vs.yaw;
+
+ // 2D decides visible side lean. This prevents monocular Z noise from tipping the whole body sideways.
+ const scx=mean(l2[11].x,l2[12].x), scy=mean(l2[11].y,l2[12].y);
+ const hcx=mean(l2[23].x,l2[24].x), hcy=mean(l2[23].y,l2[24].y);
+ const dx=scx-hcx, dy=Math.max(.035,hcy-scy);
+ const sideLean=clampRad(Math.atan2(dx,dy),25);
+
+ // World Z is allowed to influence forward/back lean only moderately.
+ const qSC=mid(q.LS,q.RS), qHC=mid(q.LH,q.RH);
+ const rawUp=qSC.clone().sub(qHC);
+ const forwardLean=clampRad(Math.atan2(rawUp.z,Math.max(.05,Math.hypot(rawUp.x,rawUp.y))),18);
+
+ // Shoulder/pelvis roll comes mainly from 2D image slope.
+ const shoulderRoll=clampRad(Math.atan2(-(l2[12].y-l2[11].y),Math.max(.02,Math.abs(l2[12].x-l2[11].x))),20);
+ const pelvisRoll=clampRad(Math.atan2(-(l2[24].y-l2[23].y),Math.max(.02,Math.abs(l2[24].x-l2[23].x))),16);
+
+ const makeRight=(roll)=>{
+   const c=Math.cos(roll);
+   return new THREE.Vector3(
+     Math.cos(yaw)*c,
+     Math.sin(roll),
+     Math.sin(yaw)*c
+   ).normalize();
+ };
+
+ let torso=new THREE.Vector3(
+   Math.sin(sideLean),
+   Math.cos(sideLean)*Math.cos(forwardLean),
+   Math.sin(forwardLean)
+ ).normalize();
+
+ // Keep the model anchored to virtual gravity: never let torso become near-horizontal from a bad frame.
+ if(torso.y<.82){
+   torso.lerp(new THREE.Vector3(0,1,0),.55).normalize();
+ }
+
+ return {
+   shoulder:makeRight(shoulderRoll),
+   pelvis:makeRight(pelvisRoll),
+   torso
+ };
+}
+
 function updateSkeleton(result){
  const lm=result?.worldLandmarks?.[0];
- if(!lm){hideSkeleton();return}
+ if(!lm){hideSkeleton();if(els.viewBadge)els.viewBadge.innerHTML="<b>AUTO VIEW</b><br>等待人體…";return}
 
  const q={};
  for(const [name,index] of Object.entries(J))q[name]=ema(name,mpToVec(lm[index]));
@@ -549,9 +680,18 @@ function updateSkeleton(result){
    root.add(d);
  }
 
- const shoulderDir=unitFrom(q.LS,q.RS,new THREE.Vector3(1,0,0));
- const pelvisDir=unitFrom(q.LH,q.RH,new THREE.Vector3(1,0,0));
- const torsoDir=unitFrom(rawHip,mid(q.LS,q.RS),new THREE.Vector3(0,1,0));
+ let shoulderDir,pelvisDir,torsoDir;
+ if(els.autoViewCorrection?.checked){
+   const axes=stabilizedBodyAxes(result,q);
+   shoulderDir=axes.shoulder;
+   pelvisDir=axes.pelvis;
+   torsoDir=axes.torso;
+ }else{
+   shoulderDir=unitFrom(q.LS,q.RS,new THREE.Vector3(1,0,0));
+   pelvisDir=unitFrom(q.LH,q.RH,new THREE.Vector3(1,0,0));
+   torsoDir=unitFrom(rawHip,mid(q.LS,q.RS),new THREE.Vector3(0,1,0));
+   estimateViewpoint(result);
+ }
  const hipC=root.clone(),shoulderC=hipC.clone().add(torsoDir.multiplyScalar(rest.torso));
 
  const p={};
@@ -622,13 +762,16 @@ function clearGhosts(){
 function setTeachingView(kind){
  controls.autoRotate=false; els.autoRotate.checked=false;
  const target=new THREE.Vector3(0,-.25,0);
- if(kind==="front"){
-   camera.position.set(0,.15,4.8);
- }else if(kind==="back"){
-   camera.position.set(0,.15,-4.8);
- }else{
-   camera.position.set(4.8,.15,0);
- }
+ const d=4.8;
+
+ // View buttons are relative to the reconstructed body, not the recording camera.
+ // This makes front/back/side consistent even when the source video is oblique.
+ let a=0;
+ if(kind==="front")a=0;
+ else if(kind==="back")a=Math.PI;
+ else a=-Math.PI/2;
+
+ camera.position.set(Math.sin(a)*d,.15,Math.cos(a)*d);
  controls.target.copy(target);
  camera.lookAt(target);
  controls.update();
@@ -647,6 +790,7 @@ els.backViewBtn?.addEventListener("click",()=>setTeachingView("back"));
 els.sideViewBtn?.addEventListener("click",()=>setTeachingView("side"));
 els.ghostMode?.addEventListener("change",()=>{if(!els.ghostMode.checked)clearGhosts()});
 els.mirrorMode?.addEventListener("change",()=>clearGhosts());
+els.autoViewCorrection?.addEventListener("change",()=>{resetBodyCalibration();viewState.lastYaw=0});
 
 function renderLoop(){
  requestAnimationFrame(renderLoop);
