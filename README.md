@@ -1,15 +1,14 @@
-# PoseTwin v8.2 — No VRM
+# PoseTwin v8.2.1 — GPU 狀態卡修正版
 
-此版本完全移除 VRM。
+修正內容：
 
-- 無 three-vrm
-- 無 GLTFLoader
-- 無外部 VRM 模型下載
-- 無「載入 VRM / 預設 VRM / VRM 人體」控制
-- 固定使用 15 節段 3D 教學人偶
-- 上軀幹、骨盆為兩格橢圓圓柱
-- 保留 MediaPipe、影片上傳、相機、鏡像、慢速、逐格、殘影、錄影與截圖
-- 保留正面 / 背面 / 側面教學視角
-- AI 模型狀態不使用假百分比
+- GPU / Full 模型成功建立後：
+  - 右上角狀態顯示「AI + 3D 骨骼已就緒（GPU / Full）」
+  - 中間大卡片同步切換成「✓ 模型已就緒」
+  - 顯示「已使用 GPU / Full 模型。現在可以上傳影片或開啟相機。」
+- CPU / Lite 成功路徑已驗證，仍會正確顯示 ready。
+- 保留 No-VRM、15 節段教學人偶架構。
+- 不使用假的百分比進度。
 
-部署：用 index.html 覆蓋 GitHub Pages repository 根目錄的 index.html。
+部署：
+用此版 `index.html` 覆蓋 GitHub Pages repository 根目錄的 `index.html`。

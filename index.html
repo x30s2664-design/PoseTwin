@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoseTwin v8.2 | 15-Segment Teaching Mannequin</title>
+<title>PoseTwin v8.2.1 | 15-Segment Teaching Mannequin</title>
 <style>
 :root{
   color-scheme:dark;
@@ -196,7 +196,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
 </section>
 
 <p class="help">
-  PoseTwin v8.2：v8.2 使用 15 節段 3D 教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v8.2 完全移除 VRM。右側固定使用輕量 15 節段 3D 教學人偶；上軀幹與骨盆使用兩格橢圓圓柱體，分別跟隨肩線與髖線旋轉。
+  PoseTwin v8.2.1：v8.2 使用 15 節段 3D 教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v8.2.1 完全移除 VRM，並修正 GPU / Full 成功後中間狀態卡片未切換為「模型已就緒」的問題。右側固定使用輕量 15 節段 3D 教學人偶；上軀幹與骨盆使用兩格橢圓圓柱體，分別跟隨肩線與髖線旋轉。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -704,6 +704,7 @@ async function initPose(){
        minTrackingConfidence:.5
      });
      setStatus("AI + 3D 骨骼已就緒（GPU / Full）","ready");
+     setModelStage("✓ 模型已就緒","已使用 GPU / Full 模型。現在可以上傳影片或開啟相機。","ready");
      return;
    }catch(gpuError){
      console.warn("Full GPU init failed:",gpuError);
