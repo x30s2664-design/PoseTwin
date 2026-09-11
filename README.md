@@ -1,21 +1,17 @@
-# PoseTwin v2
+# PoseTwin v3
 
-功能：
-- 上傳本機影片
-- 直接開啟 Webcam
+新增：
+- 🔄 前 / 後鏡頭切換
+- 📷 即時相機
+- 上傳影片
 - 左右雙螢幕：原始影像 / AI 骨骼
-- 同步播放與時間軸
-- 直接錄製右側骨骼 Canvas
-- 停止後下載 WebM
-- 下載骨骼 PNG 截圖
-- 純前端，可部署 GitHub Pages
+- 骨骼影片錄製並下載 WebM
+- 骨骼 PNG 截圖
+- 播放、時間軸與速度控制
 
-## 部署
-把 `index.html` 上傳到 GitHub repo 根目錄後，在 Settings → Pages：
-- Deploy from a branch
-- Branch: `main`
-- Folder: `/ (root)`
+## 鏡頭切換
+手機上會在 `user`（前鏡頭）與 `environment`（後鏡頭）之間切換。
+桌機若只有單一 Webcam，切換可能仍會使用同一顆鏡頭。
 
-## 注意
-相機功能需要 HTTPS；GitHub Pages 預設符合需求。
-第一次使用需允許相機權限並連線下載 MediaPipe 模型。
+## GitHub Pages
+將 `index.html` 上傳覆蓋 repo 根目錄的舊版檔案即可。
