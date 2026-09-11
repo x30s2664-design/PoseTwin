@@ -1,21 +1,15 @@
-# PoseTwin v8.1 — VRM 視角與高度修正版
+# PoseTwin v8.2 — No VRM
 
-修正兩個主要問題：
+此版本完全移除 VRM。
 
-1. VRM 太高 / 畫面框取不好
-- VRM 目標身高由 2.85 降為 2.45。
-- 載入後重新計算實際 Bounding Box。
-- 腳底自動貼到地面格線。
-- OrbitControls 的 target 改為模型實際中心。
-- 重置視角會依模型實際大小自動決定距離。
+- 無 three-vrm
+- 無 GLTFLoader
+- 無外部 VRM 模型下載
+- 無「載入 VRM / 預設 VRM / VRM 人體」控制
+- 固定使用 15 節段 3D 教學人偶
+- 上軀幹、骨盆為兩格橢圓圓柱
+- 保留 MediaPipe、影片上傳、相機、鏡像、慢速、逐格、殘影、錄影與截圖
+- 保留正面 / 背面 / 側面教學視角
+- AI 模型狀態不使用假百分比
 
-2. 正面 / 背面 / 側面
-- 新增「背面」按鈕。
-- 不再把正面固定當成世界 +Z。
-- 依 MediaPipe 當下的肩線、髖線、鼻子方向建立人物自己的 front/right/up basis。
-- 正面：鏡頭移到人物正前方。
-- 背面：鏡頭移到人物背後。
-- 側面：鏡頭移到人物右側。
-- 因此即使人物在影片中轉身，三個視角仍以人物自身朝向為準。
-
-另外，VRM0 模型若 three-vrm 支援 rotateVRM0，會自動正規化舊版 VRM 的朝向。
+部署：用 index.html 覆蓋 GitHub Pages repository 根目錄的 index.html。
