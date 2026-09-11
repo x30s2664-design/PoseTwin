@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoseTwin v7.1 | 15-Segment Teaching Mannequin</title>
+<title>PoseTwin v7.3 | 15-Segment Teaching Mannequin</title>
 <style>
 :root{
   color-scheme:dark;
@@ -70,6 +70,22 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
 .check{display:flex;align-items:center;gap:7px}.check input{accent-color:var(--accent)}
 .help{color:var(--muted);font-size:.82rem;line-height:1.6;margin:13px 2px 0}
 @media(max-width:900px){header{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.spacer{display:none}.meta{width:100%}}
+
+.model-build{
+  margin:0 0 13px;padding:13px 14px;border:1px solid var(--line);border-radius:14px;
+  background:linear-gradient(145deg,rgba(54,163,255,.12),rgba(13,24,36,.96));
+  box-shadow:var(--shadow)
+}
+.model-build-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.model-build-title{font-weight:700}
+.model-build-state{color:var(--muted);font-size:.82rem}
+.model-progress{height:8px;margin-top:10px;border-radius:999px;overflow:hidden;background:#09121b;border:1px solid #21384d}
+.model-progress>div{height:100%;width:0%;background:linear-gradient(90deg,#36a3ff,#6ee7cf);transition:width .35s ease}
+.model-build.ready{border-color:rgba(110,231,207,.65);background:rgba(110,231,207,.08)}
+.model-build.error{border-color:rgba(255,95,114,.7);background:rgba(255,95,114,.08)}
+.model-build.ready .model-build-title{color:#aef6e8}
+.model-build.error .model-build-title{color:#ffbac3}
+
 </style>
 </head>
 <body>
@@ -87,6 +103,17 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div id="modelStatus" class="status"><span class="dot"></span><span>載入 AI 模型中…</span></div><button id="retryModelBtn" type="button" style="display:none">↻ 重試模型</button></div>
 </header>
+
+<section id="modelBuildCard" class="model-build" aria-live="polite">
+  <div class="model-build-head">
+    <div>
+      <div id="modelBuildTitle" class="model-build-title">⏳ 正在準備 AI 姿態模型</div>
+      <div id="modelBuildState" class="model-build-state">初始化中，完成後會顯示「✓ 模型已就緒」</div>
+    </div>
+    <div id="modelBuildPercent" class="model-build-state">0%</div>
+  </div>
+  <div class="model-progress"><div id="modelBuildBar"></div></div>
+</section>
 
 <div id="diagnostic" style="display:none;margin:0 0 13px;padding:10px 12px;border:1px solid #5d3340;
 background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82rem;line-height:1.55"></div>
@@ -128,7 +155,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
     <div class="panel-head"><strong>🧍 15 節段 3D 人偶</strong><span id="fpsBadge" class="badge">0 FPS</span></div>
     <div class="stage">
       <div id="threeHost"></div>
-      <div id="rightEmpty" class="empty"><div><div class="ico">🧍</div><b>等待人體姿態</b><p>偵測到人體後會顯示 15 節段立體教學人偶。</p></div></div>
+      <div id="rightEmpty" class="empty"><div><div class="ico">🧍</div><b>等待人體姿態</b><p>上方顯示「✓ 模型已就緒」後，上傳影片或開啟相機即可開始。</p></div></div>
     </div>
   </article>
 </section>
@@ -155,6 +182,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
     <label class="check"><input id="keepRoot" type="checkbox" checked> 保留位移</label>
     <label class="check"><input id="mirrorMode" type="checkbox" checked> 鏡像模仿</label>
     <label class="check"><input id="ghostMode" type="checkbox" checked> 動作殘影</label>
+    <label class="check"><input id="rotationHint" type="checkbox" checked> 顯示胸口／髖方向</label>
     <label class="check">播放速度
       <select id="teachingSpeedSelect" style="min-height:32px;padding:0 28px 0 8px">
         <option value="0.25">0.25×</option>
@@ -172,7 +200,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
 </section>
 
 <p class="help">
-  PoseTwin v7.1：v7 使用 15 節段教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。
+  PoseTwin v7.3：v7.3 使用 15 節段教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v7.3 將上軀幹與骨盆改成非對稱立體塊，並加入胸口／髖部朝向箭頭，使轉身與髖旋轉更容易看懂。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -198,9 +226,9 @@ const els={
  cameraBtn:$("#cameraBtn"),switchCameraBtn:$("#switchCameraBtn"),playBtn:$("#playBtn"),
  restartBtn:$("#restartBtn"),speedSelect:$("#speedSelect"),seekBar:$("#seekBar"),
  timeLabel:$("#timeLabel"),fileMeta:$("#fileMeta"),leftEmpty:$("#leftEmpty"),rightEmpty:$("#rightEmpty"),
- status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
+ status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),modelBuildCard:$("#modelBuildCard"),modelBuildTitle:$("#modelBuildTitle"),modelBuildState:$("#modelBuildState"),modelBuildPercent:$("#modelBuildPercent"),modelBuildBar:$("#modelBuildBar"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
  snapshotBtn:$("#snapshotBtn"),resetViewBtn:$("#resetViewBtn"),recordStatus:$("#recordStatus"),
- showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),sideViewBtn:$("#sideViewBtn")
+ showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),rotationHint:$("#rotationHint"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),sideViewBtn:$("#sideViewBtn")
 };
 
 let poseLandmarker=null,objectUrl=null,mediaStream=null,mode="none",facingMode="user";
@@ -324,8 +352,14 @@ function makeBoxSegment(name,size,material){
 
 // 15 visible teaching segments
 makeCapsuleSegment("headNeck",.19,mannequinMaterials.accent);
-makeCapsuleSegment("upperTrunk",.25,mannequinMaterials.center);
-makeCapsuleSegment("lowerTrunk",.23,mannequinMaterials.center);
+function makeBodyBlock(name,material){
+ const geo=new THREE.BoxGeometry(1,1,1,3,3,2);
+ const mesh=new THREE.Mesh(geo,material);
+ mesh.castShadow=true;mesh.receiveShadow=true;mesh.visible=false;
+ mannequinRoot.add(mesh);mannequin[name]=mesh;return mesh;
+}
+makeBodyBlock("upperTrunk",mannequinMaterials.center);
+makeBodyBlock("lowerTrunk",mannequinMaterials.center);
 
 makeCapsuleSegment("lUpperArm",.105,mannequinMaterials.left);
 makeCapsuleSegment("rUpperArm",.105,mannequinMaterials.right);
@@ -368,8 +402,23 @@ function updateMannequin(p){
  const headTop=p.NOSE.clone().add(unitFrom(sc,p.NOSE,new THREE.Vector3(0,1,0)).multiplyScalar(rest.head*.38));
 
  setCapsuleSegment(mannequin.headNeck,neckBase,headTop,1.05);
- setCapsuleSegment(mannequin.upperTrunk,sc,trunkMid,1.28);
- setCapsuleSegment(mannequin.lowerTrunk,trunkMid,hc,1.20);
+
+ // v7.3: asymmetric torso and pelvis blocks make axial rotation visible.
+ // Upper trunk follows shoulder line; lower trunk follows hip line independently.
+ const upperHeight=Math.max(.28,sc.distanceTo(trunkMid));
+ const lowerHeight=Math.max(.22,trunkMid.distanceTo(hc));
+ const upperPose=setBodyBlock(
+   mannequin.upperTrunk,p.LS,p.RS,trunkMid,sc,
+   rest.shoulder*.92,upperHeight,rest.shoulder*.34,p.NOSE
+ );
+ const lowerPose=setBodyBlock(
+   mannequin.lowerTrunk,p.LH,p.RH,hc,trunkMid,
+   rest.pelvis*.96,lowerHeight,rest.pelvis*.48,p.NOSE
+ );
+
+ // Yellow = chest/front direction, green = pelvis/front direction.
+ setDirectionMarker(chestFrontMarker,upperPose.center,upperPose.basis.z,rest.shoulder*.22);
+ setDirectionMarker(pelvisFrontMarker,lowerPose.center,lowerPose.basis.z,rest.pelvis*.30);
 
  setCapsuleSegment(mannequin.lUpperArm,p.LS,p.LE,1);
  setCapsuleSegment(mannequin.rUpperArm,p.RS,p.RE,1);
@@ -384,6 +433,62 @@ function updateMannequin(p){
  setCapsuleSegment(mannequin.rShank,p.RK,p.RA,1);
  setBoxBetween(mannequin.lFoot,p.LA,p.LFOOT,1.05,1.15);
  setBoxBetween(mannequin.rFoot,p.RA,p.RFOOT,1.05,1.15);
+}
+
+
+// Rotation direction helpers: these are visual indicators, not extra anatomical segments.
+const rotationMarkers=new THREE.Group();
+skeletonRoot.add(rotationMarkers);
+const chestMarkerMat=new THREE.MeshStandardMaterial({color:0xffdf5d,emissive:0x443700,roughness:.35});
+const pelvisMarkerMat=new THREE.MeshStandardMaterial({color:0x70f0b5,emissive:0x153b2a,roughness:.35});
+const markerGeo=new THREE.ConeGeometry(.075,.30,16);
+const chestFrontMarker=new THREE.Mesh(markerGeo,chestMarkerMat);
+const pelvisFrontMarker=new THREE.Mesh(markerGeo,pelvisMarkerMat);
+chestFrontMarker.visible=false;pelvisFrontMarker.visible=false;
+rotationMarkers.add(chestFrontMarker,pelvisFrontMarker);
+
+const basisMat=new THREE.Matrix4();
+function bodyBasis(left,right,lowerCenter,upperCenter,faceRef=null){
+ // X = body's left-right axis.
+ const x=right.clone().sub(left);
+ if(x.lengthSq()<1e-7)x.set(1,0,0); else x.normalize();
+
+ // Y = local up, orthogonalized against X.
+ let y=upperCenter.clone().sub(lowerCenter);
+ if(y.lengthSq()<1e-7)y.set(0,1,0);
+ y.addScaledVector(x,-y.dot(x));
+ if(y.lengthSq()<1e-7)y.set(0,1,0); else y.normalize();
+
+ // Z = body front/back axis.
+ let z=x.clone().cross(y);
+ if(z.lengthSq()<1e-7)z.set(0,0,1); else z.normalize();
+
+ // Keep the "front" vector pointing approximately toward the face when possible.
+ if(faceRef){
+   const f=faceRef.clone().sub(upperCenter);
+   f.addScaledVector(x,-f.dot(x)).addScaledVector(y,-f.dot(y));
+   if(f.lengthSq()>1e-6 && z.dot(f)<0)z.multiplyScalar(-1);
+ }
+ // Recompute X for a clean orthonormal basis.
+ x.copy(y).cross(z).normalize();
+ return {x,y,z};
+}
+function setBodyBlock(mesh,left,right,lowerCenter,upperCenter,width,height,depth,faceRef){
+ const center=lowerCenter.clone().add(upperCenter).multiplyScalar(.5);
+ const basis=bodyBasis(left,right,lowerCenter,upperCenter,faceRef);
+ basisMat.makeBasis(basis.x,basis.y,basis.z);
+ mesh.visible=true;
+ mesh.position.copy(center);
+ mesh.quaternion.setFromRotationMatrix(basisMat);
+ mesh.scale.set(width,height,depth);
+ return {center,basis};
+}
+function setDirectionMarker(mesh,center,front,offset){
+ mesh.visible=!!els.rotationHint?.checked;
+ if(!mesh.visible)return;
+ mesh.position.copy(center).add(front.clone().multiplyScalar(offset));
+ // Cone's long axis is Y; point it outward in the front direction.
+ mesh.quaternion.setFromUnitVectors(yAxis,front.clone().normalize());
 }
 
 const tempA=new THREE.Vector3(),tempB=new THREE.Vector3(),tempDir=new THREE.Vector3();
@@ -415,7 +520,7 @@ function setBone(mesh,a,b){
 function hideSkeleton(){
  Object.values(joints).forEach(m=>m.visible=false);
  Object.values(bones).forEach(m=>m.visible=false);
- headMesh.visible=false;torsoMesh.visible=false;hideMannequin();
+ headMesh.visible=false;torsoMesh.visible=false;hideMannequin();chestFrontMarker.visible=false;pelvisFrontMarker.visible=false;
 }
 
 const filtered={};
@@ -560,6 +665,7 @@ els.prevFrameBtn?.addEventListener("click",()=>stepFrame(-1));
 els.nextFrameBtn?.addEventListener("click",()=>stepFrame(1));
 els.frontViewBtn?.addEventListener("click",()=>setTeachingView("front"));
 els.sideViewBtn?.addEventListener("click",()=>setTeachingView("side"));
+els.rotationHint?.addEventListener("change",()=>{if(!els.rotationHint.checked){chestFrontMarker.visible=false;pelvisFrontMarker.visible=false}});
 els.ghostMode?.addEventListener("change",()=>{if(!els.ghostMode.checked)clearGhosts()});
 els.mirrorMode?.addEventListener("change",()=>clearGhosts());
 
@@ -575,6 +681,16 @@ renderLoop();
 
 // ---------- MEDIAPIPE ----------
 function setStatus(t,type=""){els.status.className=`status ${type}`.trim();els.status.querySelector("span:last-child").textContent=t}
+let modelReady=false;
+function setModelStage(percent,title,state,type=""){
+ modelReady=type==="ready";
+ if(!els.modelBuildCard)return;
+ els.modelBuildCard.className=`model-build ${type}`.trim();
+ els.modelBuildTitle.textContent=title;
+ els.modelBuildState.textContent=state;
+ els.modelBuildPercent.textContent=`${Math.max(0,Math.min(100,percent))}%`;
+ els.modelBuildBar.style.width=`${Math.max(0,Math.min(100,percent))}%`;
+}
 async function initPose(){
  const WASM_URL="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
  const FULL_MODEL="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
@@ -584,6 +700,7 @@ async function initPose(){
  els.diagnostic.style.display="none";
  els.diagnostic.textContent="";
  setStatus("載入 AI 模型中…");
+ setModelStage(8,"⏳ 正在準備 AI 姿態模型","正在載入 MediaPipe 執行環境…");
 
  try{
    // Recreate cleanly when retrying.
@@ -593,10 +710,12 @@ async function initPose(){
    }
 
    const vision=await FilesetResolver.forVisionTasks(WASM_URL);
+   setModelStage(35,"⏳ 正在建立姿態模型","MediaPipe 已載入，正在下載 Full 模型…");
 
    // 1) Prefer the full model + GPU.
    try{
-     poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+     setModelStage(55,"⏳ 正在建立姿態模型","正在啟動 GPU / Full 模型，第一次載入可能較久…");
+      poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
        baseOptions:{
          modelAssetPath:FULL_MODEL,
          delegate:"GPU"
@@ -611,6 +730,7 @@ async function initPose(){
      return;
    }catch(gpuError){
      console.warn("Full GPU init failed:",gpuError);
+      setModelStage(70,"⏳ GPU 模型未啟動","自動改用較相容的 CPU / Lite 模型…");
    }
 
    // 2) Fall back to Lite without forcing GPU.
@@ -623,10 +743,12 @@ async function initPose(){
      minTrackingConfidence:.45
    });
 
-   setStatus("AI + 3D 骨骼已就緒（CPU / Lite）","ready");
+   setStatus("AI + 15 節段模型已就緒（CPU / Lite）","ready");
+    setModelStage(100,"✓ 模型已就緒","已改用相容模式。現在可以上傳影片或開啟相機。","ready");
  }catch(err){
    console.error("MediaPipe initialization failed:",err);
    setStatus("模型載入失敗","error");
+    setModelStage(100,"✕ 模型建立失敗","請按「↻ 重試模型」，並確認網路可存取模型檔。","error");
    els.retryModelBtn.style.display="inline-block";
    els.diagnostic.style.display="block";
 
