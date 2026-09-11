@@ -1,17 +1,24 @@
-# PoseTwin v3
+# PoseTwin v4 — 3D Skeleton
 
-新增：
-- 🔄 前 / 後鏡頭切換
-- 📷 即時相機
-- 上傳影片
-- 左右雙螢幕：原始影像 / AI 骨骼
-- 骨骼影片錄製並下載 WebM
-- 骨骼 PNG 截圖
-- 播放、時間軸與速度控制
+這一版把右側從「線條骨架」改成真正的立體骨骼視覺化。
 
-## 鏡頭切換
-手機上會在 `user`（前鏡頭）與 `environment`（後鏡頭）之間切換。
-桌機若只有單一 Webcam，切換可能仍會使用同一顆鏡頭。
+## 新增
+- 3D 圓柱骨段，不再是細線
+- 球狀關節
+- 3D 頭部與軀幹
+- MediaPipe `worldLandmarks` 驅動
+- 可拖曳旋轉 / 縮放 3D 視角
+- 顯示 / 隱藏地面格線
+- 自動旋轉
+- 重置 3D 視角
+- 前 / 後鏡頭切換
+- 直接錄製右側 3D 骨骼 WebM
+- 下載 3D 骨骼 PNG
 
-## GitHub Pages
-將 `index.html` 上傳覆蓋 repo 根目錄的舊版檔案即可。
+## 部署
+將新的 `index.html` 上傳至 GitHub `PoseTwin` repository 根目錄，覆蓋舊版檔案。
+
+GitHub Pages 約數十秒到數分鐘後更新。
+
+## 注意
+此版本使用 Three.js 與 MediaPipe CDN，因此第一次開啟需要網路連線。
