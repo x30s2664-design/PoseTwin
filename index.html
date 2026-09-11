@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PoseTwin | Video to Skeleton</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#090d12; --panel:#101720; --panel2:#151e29; --line:#263343;
+      --text:#edf4fb; --muted:#98a9bb; --accent:#70e1c8; --blue:#56a8ff;
+      --danger:#ff7e8a; --radius:18px; --shadow:0 18px 50px rgba(0,0,0,.28);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:
+      radial-gradient(circle at 20% 0%,rgba(86,168,255,.12),transparent 34rem),
+      radial-gradient(circle at 90% 10%,rgba(112,225,200,.09),transparent 30rem),
+      var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI","Noto Sans TC",sans-serif}
+    button,input,select{font:inherit}
+    .app{width:min(1500px,calc(100% - 28px));margin:auto;padding:24px 0 40px}
+    header{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:18px}
+    .brand{display:flex;gap:13px;align-items:center}
+    .mark{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;
+      background:linear-gradient(145deg,rgba(112,225,200,.22),rgba(86,168,255,.20));
+      border:1px solid rgba(112,225,200,.35);box-shadow:var(--shadow)}
+    h1{margin:0;font-size:clamp(1.35rem,2vw,1.8rem)}
+    .subtitle{margin:3px 0 0;color:var(--muted);font-size:.92rem}
+    .status{display:flex;gap:8px;align-items:center;padding:7px 11px;border-radius:999px;
+      border:1px solid var(--line);background:rgba(16,23,32,.85);color:var(--muted);font-size:.88rem}
+    .dot{width:8px;height:8px;border-radius:50%;background:#798899}
+    .ready .dot{background:var(--accent)} .error .dot{background:var(--danger)}
+    .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px;margin-bottom:14px;
+      background:rgba(16,23,32,.82);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    button,.file-label,select{border:1px solid var(--line);background:var(--panel2);color:var(--text);
+      border-radius:12px;min-height:42px}
+    button,.file-label{padding:10px 14px;cursor:pointer;transition:.18s}
+    button:hover:not(:disabled),.file-label:hover{transform:translateY(-1px);border-color:#3c5169;background:#1a2634}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .file-label{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(145deg,rgba(112,225,200,.18),rgba(86,168,255,.14));border-color:rgba(112,225,200,.42)}
+    .file-label input{display:none}
+    select{padding:0 32px 0 12px}
+    .danger{border-color:rgba(255,126,138,.5)}
+    .recording{background:rgba(255,126,138,.13);border-color:var(--danger)}
+    .spacer{flex:1}
+    .meta{color:var(--muted);font-size:.86rem;max-width:min(34vw,500px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .viewer-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .viewer{overflow:hidden;background:rgba(16,23,32,.88);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .viewer-head{display:flex;justify-content:space-between;align-items:center;padding:0 15px;height:50px;border-bottom:1px solid var(--line)}
+    .badge{padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#0c1219;color:var(--muted);font-size:.75rem}
+    .stage{position:relative;aspect-ratio:16/9;display:grid;place-items:center;background:#04070a}
+    video,canvas{width:100%;height:100%;object-fit:contain;background:#000;display:block}
+    .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted);pointer-events:none}
+    .empty p{max-width:360px;margin:8px auto 0;line-height:1.55;font-size:.92rem}
+    .hidden{display:none!important}
+    .timeline{margin-top:14px;padding:14px;background:rgba(16,23,32,.82);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .row{display:flex;align-items:center;gap:12px}
+    .time{min-width:115px;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:.86rem}
+    input[type=range]{width:100%;accent-color:var(--accent)}
+    .options{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;color:var(--muted);font-size:.86rem}
+    .check{display:flex;align-items:center;gap:7px}
+    .check input{accent-color:var(--accent)}
+    .help{color:var(--muted);font-size:.84rem;line-height:1.55;margin-top:14px}
+    @media(max-width:920px){header{align-items:flex-start;flex-direction:column}.viewer-grid{grid-template-columns:1fr}.spacer{display:none}.meta{flex-basis:100%;max-width:100%}}
+  </style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <div class="brand">
+      <div class="mark">🦴</div>
+      <div><h1>PoseTwin</h1><p class="subtitle">原始影像 × AI 骨骼動作同步視覺化</p></div>
+    </div>
+    <div id="modelStatus" class="status"><span class="dot"></span><span>正在載入 AI 模型…</span></div>
+  </header>
+
+  <section class="toolbar">
+    <label class="file-label">＋ 選擇影片<input id="videoInput" type="file" accept="video/*"></label>
+    <button id="cameraBtn">📷 開啟相機</button>
+    <button id="playBtn" disabled>▶ 播放</button>
+    <button id="restartBtn" disabled>↺ 從頭</button>
+    <select id="speedSelect" disabled>
+      <option value=".5">0.5×</option><option value=".75">0.75×</option>
+      <option value="1" selected>1×</option><option value="1.25">1.25×</option>
+      <option value="1.5">1.5×</option><option value="2">2×</option>
+    </select>
+    <div class="spacer"></div>
+    <div id="fileMeta" class="meta">尚未選擇影片</div>
+  </section>
+
+  <section class="toolbar">
+    <button id="recordBtn" disabled>⏺ 開始錄製骨骼影片</button>
+    <button id="downloadBtn" disabled>⬇ 下載錄影</button>
+    <button id="snapshotBtn" disabled>📸 下載骨骼截圖</button>
+    <div id="recordStatus" class="meta">尚未錄製</div>
+  </section>
+
+  <section class="viewer-grid">
+    <article class="viewer">
+      <div class="viewer-head"><strong>🎬 原始影像</strong><span class="badge">SOURCE</span></div>
+      <div class="stage">
+        <video id="sourceVideo" playsinline muted preload="metadata"></video>
+        <div id="leftEmpty" class="empty"><div><div style="font-size:2rem">🎞️</div><strong>選擇影片或開啟相機</strong><p>左側顯示原始影像，右側同步顯示骨骼。</p></div></div>
+      </div>
+    </article>
+
+    <article class="viewer">
+      <div class="viewer-head"><strong>🦴 骨骼影像</strong><span id="fpsBadge" class="badge">0 FPS</span></div>
+      <div class="stage">
+        <canvas id="skeletonCanvas"></canvas>
+        <div id="rightEmpty" class="empty"><div><div style="font-size:2rem">🧍</div><strong>AI 骨骼結果</strong><p>偵測開始後，骨骼會即時顯示在這裡。</p></div></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="timeline">
+    <div class="row">
+      <input id="seekBar" type="range" min="0" max="1000" value="0" disabled>
+      <div id="timeLabel" class="time">00:00 / 00:00</div>
+    </div>
+    <div class="options">
+      <label class="check"><input id="showJoints" type="checkbox" checked>顯示關節點</label>
+      <label class="check"><input id="showBones" type="checkbox" checked>顯示骨架線</label>
+      <label class="check"><input id="showConfidence" type="checkbox">顯示低信心關節</label>
+    </div>
+  </section>
+
+  <p class="help">
+    「錄製骨骼影片」會直接錄製右側 Canvas，停止後可下載 WebM。相機模式需要瀏覽器允許相機權限。
+    GitHub Pages 使用 HTTPS，可直接使用 getUserMedia。所有影像處理都在瀏覽器端進行。
+  </p>
+</main>
+
+<script type="module">
+import { FilesetResolver, PoseLandmarker }
+from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/vision_bundle.mjs";
+
+const $ = s => document.querySelector(s);
+const els = {
+  videoInput:$("#videoInput"), video:$("#sourceVideo"), canvas:$("#skeletonCanvas"),
+  cameraBtn:$("#cameraBtn"), playBtn:$("#playBtn"), restartBtn:$("#restartBtn"),
+  speedSelect:$("#speedSelect"), seekBar:$("#seekBar"), timeLabel:$("#timeLabel"),
+  fileMeta:$("#fileMeta"), leftEmpty:$("#leftEmpty"), rightEmpty:$("#rightEmpty"),
+  status:$("#modelStatus"), fpsBadge:$("#fpsBadge"), showJoints:$("#showJoints"),
+  showBones:$("#showBones"), showConfidence:$("#showConfidence"),
+  recordBtn:$("#recordBtn"), downloadBtn:$("#downloadBtn"),
+  snapshotBtn:$("#snapshotBtn"), recordStatus:$("#recordStatus")
+};
+const ctx = els.canvas.getContext("2d",{alpha:false});
+
+let poseLandmarker=null, objectUrl=null, stream=null, mode="none";
+let running=false, lastVideoTime=-1, latestResult=null;
+let fpsFrames=0, fpsStart=performance.now();
+let mediaRecorder=null, recordedChunks=[], recordedBlob=null;
+const MIN_VISIBILITY=.45;
+
+function setStatus(text,type=""){
+  els.status.className=`status ${type}`.trim();
+  els.status.querySelector("span:last-child").textContent=text;
+}
+function fmt(s){
+  if(!Number.isFinite(s)) return "00:00";
+  s=Math.max(0,Math.floor(s)); return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+}
+function resizeCanvas(){
+  const w=els.video.videoWidth||1280,h=els.video.videoHeight||720;
+  if(els.canvas.width!==w||els.canvas.height!==h){els.canvas.width=w;els.canvas.height=h}
+}
+function clearCanvas(){
+  resizeCanvas();
+  ctx.fillStyle="#020406";ctx.fillRect(0,0,els.canvas.width,els.canvas.height);
+}
+function visible(lm){
+  if(!lm)return false;
+  if(els.showConfidence.checked)return true;
+  return (lm.visibility??lm.presence??1)>=MIN_VISIBILITY;
+}
+function drawPose(result){
+  clearCanvas(); latestResult=result;
+  if(!result?.landmarks?.length)return;
+  const lm=result.landmarks[0];
+  if(els.showBones.checked){
+    ctx.save();ctx.lineCap="round";ctx.lineJoin="round";
+    ctx.lineWidth=Math.max(3,els.canvas.width/310);ctx.strokeStyle="#70e1c8";
+    ctx.shadowColor="rgba(112,225,200,.45)";ctx.shadowBlur=Math.max(4,els.canvas.width/180);
+    for(const c of PoseLandmarker.POSE_CONNECTIONS){
+      const a=lm[c.start],b=lm[c.end]; if(!visible(a)||!visible(b))continue;
+      ctx.beginPath();ctx.moveTo(a.x*els.canvas.width,a.y*els.canvas.height);
+      ctx.lineTo(b.x*els.canvas.width,b.y*els.canvas.height);ctx.stroke();
+    } ctx.restore();
+  }
+  if(els.showJoints.checked){
+    ctx.save();const r=Math.max(3.5,els.canvas.width/270);
+    for(const p of lm){if(!visible(p))continue;
+      ctx.beginPath();ctx.arc(p.x*els.canvas.width,p.y*els.canvas.height,r,0,Math.PI*2);
+      ctx.fillStyle="#f5fbff";ctx.shadowColor="rgba(86,168,255,.7)";ctx.shadowBlur=r*2;ctx.fill();
+      ctx.lineWidth=Math.max(1.5,r*.35);ctx.strokeStyle="#56a8ff";ctx.stroke();
+    } ctx.restore();
+  }
+}
+async function initModel(){
+  try{
+    const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
+    poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{
+        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+        delegate:"GPU"
+      },runningMode:"VIDEO",numPoses:1,
+      minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5
+    });
+    setStatus("AI 模型已就緒","ready");
+  }catch(e){
+    console.warn(e);
+    try{
+      const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
+      poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+        baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"},
+        runningMode:"VIDEO",numPoses:1
+      });
+      setStatus("AI 模型已就緒（CPU）","ready");
+    }catch(err){console.error(err);setStatus("AI 模型載入失敗","error")}
+  }
+}
+function updateFPS(){
+  fpsFrames++;const now=performance.now(),el=now-fpsStart;
+  if(el>=800){els.fpsBadge.textContent=`${Math.round(fpsFrames*1000/el)} FPS`;fpsFrames=0;fpsStart=now}
+}
+async function analyze(){
+  if(!poseLandmarker||els.video.readyState<2)return;
+  try{
+    resizeCanvas();
+    const result=poseLandmarker.detectForVideo(els.video,performance.now());
+    drawPose(result);els.rightEmpty.classList.add("hidden");updateFPS();
+  }catch(e){console.error(e)}
+}
+async function loop(){
+  if(!running)return;
+  if(mode==="camera" || els.video.currentTime!==lastVideoTime){
+    lastVideoTime=els.video.currentTime; await analyze();
+  }
+  requestAnimationFrame(loop);
+}
+function updateTimeline(){
+  if(mode==="camera"){els.timeLabel.textContent="LIVE";els.seekBar.value=0;return}
+  const d=els.video.duration;
+  if(!Number.isFinite(d)||d<=0)return;
+  els.seekBar.value=Math.round((els.video.currentTime/d)*1000);
+  els.timeLabel.textContent=`${fmt(els.video.currentTime)} / ${fmt(d)}`;
+}
+async function stopCamera(){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  els.cameraBtn.textContent="📷 開啟相機";
+}
+function enableCaptureButtons(){
+  els.recordBtn.disabled=false;els.snapshotBtn.disabled=false;
+}
+async function useCamera(){
+  await stopCamera();
+  if(objectUrl){URL.revokeObjectURL(objectUrl);objectUrl=null}
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false
+    });
+    mode="camera";els.video.srcObject=stream;els.video.muted=true;await els.video.play();
+    els.cameraBtn.textContent="⏹ 關閉相機";els.fileMeta.textContent="即時相機";
+    els.leftEmpty.classList.add("hidden");els.rightEmpty.classList.add("hidden");
+    els.playBtn.disabled=true;els.restartBtn.disabled=true;els.speedSelect.disabled=true;els.seekBar.disabled=true;
+    enableCaptureButtons();running=true;loop();
+  }catch(e){console.error(e);alert("無法開啟相機。請允許瀏覽器相機權限。")}
+}
+els.cameraBtn.addEventListener("click",async()=>{
+  if(mode==="camera"){
+    running=false;await stopCamera();els.video.srcObject=null;mode="none";
+    els.leftEmpty.classList.remove("hidden");els.fileMeta.textContent="尚未選擇影片";
+  }else await useCamera();
+});
+els.videoInput.addEventListener("change",async e=>{
+  const f=e.target.files?.[0];if(!f)return;
+  running=false;await stopCamera();els.video.srcObject=null;
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+  objectUrl=URL.createObjectURL(f);mode="file";els.video.src=objectUrl;els.video.load();
+  els.fileMeta.textContent=`${f.name} · ${(f.size/1024/1024).toFixed(1)} MB`;
+  els.leftEmpty.classList.add("hidden");els.rightEmpty.classList.remove("hidden");
+});
+els.video.addEventListener("loadedmetadata",()=>{
+  if(mode!=="file")return;
+  resizeCanvas();clearCanvas();els.playBtn.disabled=false;els.restartBtn.disabled=false;
+  els.speedSelect.disabled=false;els.seekBar.disabled=false;enableCaptureButtons();updateTimeline();
+});
+els.video.addEventListener("loadeddata",()=>analyze());
+els.video.addEventListener("play",()=>{
+  if(mode!=="file")return;els.playBtn.textContent="⏸ 暫停";running=true;loop();
+});
+els.video.addEventListener("pause",()=>{
+  if(mode!=="file")return;els.playBtn.textContent="▶ 播放";running=false;analyze();
+});
+els.video.addEventListener("timeupdate",updateTimeline);
+els.video.addEventListener("seeked",()=>{lastVideoTime=-1;analyze()});
+els.playBtn.addEventListener("click",()=>els.video.paused?els.video.play():els.video.pause());
+els.restartBtn.addEventListener("click",()=>{els.video.currentTime=0;lastVideoTime=-1;analyze()});
+els.speedSelect.addEventListener("change",()=>els.video.playbackRate=Number(els.speedSelect.value));
+els.seekBar.addEventListener("input",()=>{
+  if(mode!=="file"||!Number.isFinite(els.video.duration))return;
+  els.video.currentTime=(Number(els.seekBar.value)/1000)*els.video.duration;updateTimeline();
+});
+[els.showJoints,els.showBones,els.showConfidence].forEach(i=>i.addEventListener("change",()=>latestResult&&drawPose(latestResult)));
+
+function bestMime(){
+  const types=["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"];
+  return types.find(t=>MediaRecorder.isTypeSupported(t))||"";
+}
+els.recordBtn.addEventListener("click",()=>{
+  if(mediaRecorder && mediaRecorder.state==="recording"){mediaRecorder.stop();return}
+  recordedChunks=[];recordedBlob=null;els.downloadBtn.disabled=true;
+  const canvasStream=els.canvas.captureStream(30);
+  const mime=bestMime();
+  mediaRecorder=new MediaRecorder(canvasStream,mime?{mimeType:mime}:undefined);
+  mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data)};
+  mediaRecorder.onstop=()=>{
+    recordedBlob=new Blob(recordedChunks,{type:mediaRecorder.mimeType||"video/webm"});
+    els.recordBtn.textContent="⏺ 開始錄製骨骼影片";els.recordBtn.classList.remove("recording");
+    els.downloadBtn.disabled=false;
+    els.recordStatus.textContent=`錄製完成 · ${(recordedBlob.size/1024/1024).toFixed(1)} MB`;
+  };
+  mediaRecorder.start(250);
+  els.recordBtn.textContent="⏹ 停止錄製";els.recordBtn.classList.add("recording");
+  els.recordStatus.textContent="正在錄製骨骼影片…";
+});
+els.downloadBtn.addEventListener("click",()=>{
+  if(!recordedBlob)return;
+  const a=document.createElement("a");a.href=URL.createObjectURL(recordedBlob);
+  a.download=`PoseTwin-skeleton-${new Date().toISOString().replace(/[:.]/g,"-")}.webm`;
+  a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+});
+els.snapshotBtn.addEventListener("click",()=>{
+  els.canvas.toBlob(blob=>{
+    if(!blob)return;const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+    a.download=`PoseTwin-skeleton-${new Date().toISOString().replace(/[:.]/g,"-")}.png`;
+    a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  },"image/png");
+});
+window.addEventListener("beforeunload",()=>{running=false;stopCamera();if(objectUrl)URL.revokeObjectURL(objectUrl);poseLandmarker?.close?.()});
+
+clearCanvas();initModel();
+</script>
+</body>
+</html>
