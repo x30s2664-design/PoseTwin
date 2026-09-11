@@ -1,32 +1,11 @@
-# PoseTwin v4.1 — MediaPipe 修復版
+# PoseTwin v5.1 — 處理格版
 
-這版針對畫面出現「模型載入失敗」進行修復。
+新增：
+- 原始影像上的「處理格」
+- 可開關
+- 可選 3×3 / 4×4 / 5×5 / 6×6
+- 中央十字線
+- 外框處理區域
+- 保留 v5 自然比例 3D 骨骼、平滑、貼地、前後鏡頭、錄影與下載
 
-## 主要修正
-
-- MediaPipe Tasks Vision 改用穩定版 `1.0.1`
-- WASM 路徑固定為 `@mediapipe/tasks-vision@1.0.1/wasm`
-- Pose model 改用固定版本 `/float16/1/`，不使用 `latest`
-- 優先 Full + GPU
-- GPU / Full 初始化失敗時，自動改用 Lite + CPU
-- 頁面新增「↻ 重試模型」
-- 頁面顯示實際初始化錯誤，方便手機除錯
-- 保留 3D 圓柱骨段、球狀關節、3D 視角、前後鏡頭、錄影與下載
-
-## 更新 GitHub Pages
-
-1. 解壓縮 ZIP。
-2. 將新的 `index.html` 上傳到 PoseTwin repository 根目錄。
-3. 覆蓋舊版 `index.html`。
-4. Commit changes。
-5. 等待 GitHub Pages 重新部署。
-6. 手機重新整理；若仍看到舊版，可使用無痕視窗測試。
-
-## 正常狀態
-
-右上角應顯示其中一種：
-
-- `AI + 3D 骨骼已就緒（GPU / Full）`
-- `AI + 3D 骨骼已就緒（CPU / Lite）`
-
-播放影片後右側 FPS 會開始變動並顯示 3D 骨骼。
+部署：將新版 `index.html` 覆蓋 GitHub PoseTwin repository 根目錄的舊檔並 Commit。

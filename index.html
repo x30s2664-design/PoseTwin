@@ -41,6 +41,25 @@ select{padding:0 30px 0 11px}.spacer{flex:1}.meta{color:var(--muted);font-size:.
 .panel-head strong{font-size:1rem}.badge{font-size:.76rem;color:var(--muted);padding:5px 9px;border-radius:999px;border:1px solid var(--line)}
 .stage{position:relative;aspect-ratio:16/9;background:#000;overflow:hidden}
 video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;background:#000}
+.analysis-grid{
+  position:absolute;inset:0;pointer-events:none;z-index:3;
+  background-image:
+    linear-gradient(to right, rgba(54,163,255,.34) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(54,163,255,.34) 1px, transparent 1px);
+  background-size:33.333% 33.333%;
+  box-shadow:inset 0 0 0 2px rgba(110,231,207,.55);
+}
+.analysis-grid::before,
+.analysis-grid::after{
+  content:"";position:absolute;background:rgba(110,231,207,.65);
+}
+.analysis-grid::before{left:50%;top:0;bottom:0;width:1px}
+.analysis-grid::after{top:50%;left:0;right:0;height:1px}
+.analysis-label{
+  position:absolute;top:9px;left:9px;padding:4px 8px;border-radius:8px;
+  background:rgba(0,0,0,.58);border:1px solid rgba(110,231,207,.45);
+  color:#aef6e8;font-size:.72rem;letter-spacing:.02em
+}
 #threeHost canvas{display:block;width:100%!important;height:100%!important}
 .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px;pointer-events:none}
 .empty div{max-width:360px}.empty .ico{font-size:2rem;margin-bottom:8px}.hidden{display:none!important}
@@ -58,7 +77,7 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
 <header>
   <div class="brand">
     <div class="logo">🦴</div>
-    <div><h1>PoseTwin</h1><p>原始影像 × 3D 骨骼動作同步分析</p></div>
+    <div><h1>PoseTwin</h1><p>原始影像 × 自然比例 3D 骨骼動作同步分析</p></div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div id="modelStatus" class="status"><span class="dot"></span><span>載入 AI 模型中…</span></div><button id="retryModelBtn" type="button" style="display:none">↻ 重試模型</button></div>
 </header>
@@ -92,6 +111,9 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
     <div class="panel-head"><strong>🎬 原始影像</strong><span class="badge">SOURCE</span></div>
     <div class="stage">
       <video id="sourceVideo" playsinline muted preload="metadata"></video>
+      <div id="analysisGrid" class="analysis-grid">
+        <div class="analysis-label">POSE PROCESSING GRID</div>
+      </div>
       <div id="leftEmpty" class="empty"><div><div class="ico">🎞️</div><b>上傳影片或開啟相機</b><p>真人影像會顯示在左側。</p></div></div>
     </div>
   </article>
@@ -113,12 +135,24 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
   <div class="options">
     <label class="check"><input id="showJoints" type="checkbox" checked> 顯示關節</label>
     <label class="check"><input id="showGrid" type="checkbox" checked> 顯示地面格線</label>
+    <label class="check"><input id="showAnalysisGrid" type="checkbox" checked> 顯示處理格</label>
+    <label class="check">處理格
+      <select id="gridDensity" style="min-height:32px;padding:0 28px 0 8px">
+        <option value="3" selected>3×3</option>
+        <option value="4">4×4</option>
+        <option value="5">5×5</option>
+        <option value="6">6×6</option>
+      </select>
+    </label>
     <label class="check"><input id="autoRotate" type="checkbox"> 自動旋轉</label>
+    <label class="check"><input id="floorLock" type="checkbox" checked> 腳底貼地</label>
+    <label class="check"><input id="keepRoot" type="checkbox" checked> 保留位移</label>
+    <label class="check">平滑 <input id="smoothRange" type="range" min="0" max="90" value="68" style="width:110px"></label>
   </div>
 </section>
 
 <p class="help">
-  PoseTwin v4.1：使用 MediaPipe Tasks Vision 1.0.1 與固定版本模型。右側不是 2D 線條，而是由 MediaPipe 3D world landmarks 驅動的立體骨骼：骨段使用圓柱、關節使用球體。
+  PoseTwin v5.1：新增「處理格」覆蓋在原始影像上，可切換 3×3、4×4、5×5、6×6，用來觀察人物在畫面中的位置、重心與動作範圍。骨架仍採固定骨長、EMA 平滑、腳底貼地與有限 Root 位移。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -146,7 +180,7 @@ const els={
  timeLabel:$("#timeLabel"),fileMeta:$("#fileMeta"),leftEmpty:$("#leftEmpty"),rightEmpty:$("#rightEmpty"),
  status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
  snapshotBtn:$("#snapshotBtn"),resetViewBtn:$("#resetViewBtn"),recordStatus:$("#recordStatus"),
- showJoints:$("#showJoints"),showGrid:$("#showGrid"),autoRotate:$("#autoRotate")
+ showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange")
 };
 
 let poseLandmarker=null,objectUrl=null,mediaStream=null,mode="none",facingMode="user";
@@ -247,8 +281,6 @@ function resizeRenderer(){
 new ResizeObserver(resizeRenderer).observe(els.threeHost);
 
 function mpToVec(lm){
- // MediaPipe world landmarks are in metres around the pelvis.
- // Flip Y so up is positive, and flip Z for a natural viewer orientation.
  return new THREE.Vector3(lm.x*1.9,-lm.y*1.9,-lm.z*1.9);
 }
 function mid(a,b){return a.clone().add(b).multiplyScalar(.5)}
@@ -266,42 +298,94 @@ function hideSkeleton(){
  Object.values(bones).forEach(m=>m.visible=false);
  headMesh.visible=false;torsoMesh.visible=false;
 }
+
+const filtered={};
+let calibrated=false,baseHip=null;
+let rest={shoulder:.72,upperArm:.55,foreArm:.50,pelvis:.56,thigh:.82,shin:.78,foot:.30,torso:.76,neck:.18,head:.25};
+
+function ema(name,v){
+ const strength=Number(els.smoothRange?.value||68)/100;
+ const alpha=1-strength*.88;
+ if(!filtered[name])filtered[name]=v.clone();
+ else filtered[name].lerp(v,alpha);
+ return filtered[name].clone();
+}
+function unitFrom(a,b,fallback=new THREE.Vector3(0,-1,0)){
+ const d=b.clone().sub(a);return d.lengthSq()>1e-8?d.normalize():fallback.clone();
+}
+function bounded(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+function calibrate(p){
+ const sc=mid(p.LS,p.RS),hc=mid(p.LH,p.RH);
+ rest.shoulder=bounded(p.LS.distanceTo(p.RS),.45,1.05);
+ rest.pelvis=bounded(p.LH.distanceTo(p.RH),.35,.85);
+ rest.torso=bounded(sc.distanceTo(hc),.50,1.10);
+ rest.upperArm=bounded((p.LS.distanceTo(p.LE)+p.RS.distanceTo(p.RE))/2,.35,.80);
+ rest.foreArm=bounded((p.LE.distanceTo(p.LW)+p.RE.distanceTo(p.RW))/2,.32,.75);
+ rest.thigh=bounded((p.LH.distanceTo(p.LK)+p.RH.distanceTo(p.RK))/2,.55,1.10);
+ rest.shin=bounded((p.LK.distanceTo(p.LA)+p.RK.distanceTo(p.RA))/2,.50,1.05);
+ rest.foot=bounded(rest.shin*.38,.22,.42);
+ rest.neck=rest.torso*.20;rest.head=rest.shoulder*.30;
+ calibrated=true;
+}
+function place(parent,target,len){return parent.clone().add(unitFrom(parent,target).multiplyScalar(len))}
+function resetBodyCalibration(){
+ calibrated=false;baseHip=null;
+ for(const k of Object.keys(filtered))delete filtered[k];
+}
 function updateSkeleton(result){
  const lm=result?.worldLandmarks?.[0];
  if(!lm){hideSkeleton();return}
 
+ const q={};
+ for(const [name,index] of Object.entries(J))q[name]=ema(name,mpToVec(lm[index]));
+ if(!calibrated)calibrate(q);
+
+ const rawHip=mid(q.LH,q.RH);
+ if(!baseHip)baseHip=rawHip.clone();
+
+ let root=new THREE.Vector3(0,-.20,0);
+ if(els.keepRoot?.checked){
+   const d=rawHip.clone().sub(baseHip);
+   d.set(bounded(d.x,-1.2,1.2),bounded(d.y,-.8,.8),bounded(d.z,-.65,.65));
+   root.add(d);
+ }
+
+ const shoulderDir=unitFrom(q.LS,q.RS,new THREE.Vector3(1,0,0));
+ const pelvisDir=unitFrom(q.LH,q.RH,new THREE.Vector3(1,0,0));
+ const torsoDir=unitFrom(rawHip,mid(q.LS,q.RS),new THREE.Vector3(0,1,0));
+ const hipC=root.clone(),shoulderC=hipC.clone().add(torsoDir.multiplyScalar(rest.torso));
+
  const p={};
- for(const [name,index] of Object.entries(J))p[name]=mpToVec(lm[index]);
+ p.LH=hipC.clone().add(pelvisDir.clone().multiplyScalar(-rest.pelvis/2));
+ p.RH=hipC.clone().add(pelvisDir.clone().multiplyScalar(rest.pelvis/2));
+ p.LS=shoulderC.clone().add(shoulderDir.clone().multiplyScalar(-rest.shoulder/2));
+ p.RS=shoulderC.clone().add(shoulderDir.clone().multiplyScalar(rest.shoulder/2));
+ p.LE=place(p.LS,q.LE,rest.upperArm);p.LW=place(p.LE,q.LW,rest.foreArm);
+ p.RE=place(p.RS,q.RE,rest.upperArm);p.RW=place(p.RE,q.RW,rest.foreArm);
+ p.LK=place(p.LH,q.LK,rest.thigh);p.LA=place(p.LK,q.LA,rest.shin);
+ p.RK=place(p.RH,q.RK,rest.thigh);p.RA=place(p.RK,q.RA,rest.shin);
+ p.LFOOT=place(p.LA,q.LFOOT,rest.foot);p.RFOOT=place(p.RA,q.RFOOT,rest.foot);
 
- const hipCenter=mid(p.LH,p.RH);
- const shoulderCenter=mid(p.LS,p.RS);
+ const neckTop=shoulderC.clone().add(new THREE.Vector3(0,rest.neck,0));
+ const faceDir=unitFrom(mid(q.LS,q.RS),q.NOSE,new THREE.Vector3(0,1,0));
+ p.NOSE=neckTop.clone().add(faceDir.multiplyScalar(rest.head));
 
- // Stabilize body around scene origin while preserving relative movement.
- const rootOffset=new THREE.Vector3(-hipCenter.x,-hipCenter.y-.15,-hipCenter.z);
- Object.keys(p).forEach(k=>p[k].add(rootOffset));
- const hipC=mid(p.LH,p.RH),shoulderC=mid(p.LS,p.RS);
+ if(els.floorLock?.checked){
+   const floor=-1.55,low=Math.min(p.LA.y,p.RA.y,p.LFOOT.y,p.RFOOT.y),dy=floor-low;
+   for(const k of Object.keys(p))p[k].y+=dy;
+ }
 
  for(const [name,m] of Object.entries(joints)){
    if(p[name]){m.position.copy(p[name]);m.visible=els.showJoints.checked}
  }
  for(const m of Object.values(bones)){
-   setBone(m,p[m.userData.a],p[m.userData.b]);
+   if(m.userData?.a&&p[m.userData.a]&&p[m.userData.b])setBone(m,p[m.userData.a],p[m.userData.b]);
  }
-
- // Torso capsule: shoulder centre to hip centre
- setBone(torsoMesh,hipC,shoulderC);
- torsoMesh.scale.x=1.18;torsoMesh.scale.z=.72;
-
- // Head: use nose but keep it anatomically above shoulder centre.
- const headPos=p.NOSE.clone();
- headPos.y+=.03;
- headMesh.position.copy(headPos);
- headMesh.visible=true;
-
- // Simple neck
- if(!bones.neck){bones.neck=makeBone("neck",.065)}
- setBone(bones.neck,shoulderC,new THREE.Vector3(headPos.x,headPos.y-.17,headPos.z));
-
+ const hc=mid(p.LH,p.RH),sc=mid(p.LS,p.RS);
+ setBone(torsoMesh,hc,sc);torsoMesh.scale.x=1.22;torsoMesh.scale.z=.72;
+ headMesh.position.copy(p.NOSE);headMesh.scale.set(1,.92,.92);headMesh.visible=true;
+ if(!bones.neck){bones.neck=makeBone("neck",.065);bones.neck.userData={}}
+ setBone(bones.neck,sc,p.NOSE.clone().add(new THREE.Vector3(0,-rest.head*.55,0)));
  els.rightEmpty.classList.add("hidden");
 }
 
@@ -426,7 +510,7 @@ async function useCamera(){
   mediaStream=await navigator.mediaDevices.getUserMedia({
    video:{facingMode:{ideal:facingMode},width:{ideal:1280},height:{ideal:720}},audio:false
   });
-  mode="camera";els.video.srcObject=mediaStream;els.video.muted=true;await els.video.play();
+  resetBodyCalibration();mode="camera";els.video.srcObject=mediaStream;els.video.muted=true;await els.video.play();
   els.cameraBtn.textContent="⏹ 關閉相機";els.switchCameraBtn.disabled=false;
   els.fileMeta.textContent=`即時相機 · ${facingMode==="user"?"前鏡頭":"後鏡頭"}`;
   els.leftEmpty.classList.add("hidden");els.playBtn.disabled=true;els.restartBtn.disabled=true;els.speedSelect.disabled=true;els.seekBar.disabled=true;
@@ -446,7 +530,7 @@ els.videoInput.addEventListener("change",async e=>{
  const f=e.target.files?.[0];if(!f)return;
  running=false;await stopCamera();els.video.srcObject=null;
  if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);
- mode="file";els.video.src=objectUrl;els.video.load();
+ resetBodyCalibration();mode="file";els.video.src=objectUrl;els.video.load();
  els.fileMeta.textContent=`${f.name} · ${(f.size/1024/1024).toFixed(1)} MB`;els.leftEmpty.classList.add("hidden");
 });
 els.video.addEventListener("loadedmetadata",()=>{
@@ -464,7 +548,7 @@ els.video.addEventListener("pause",()=>{if(mode!=="file")return;els.playBtn.text
 els.video.addEventListener("timeupdate",timeline);
 els.video.addEventListener("seeked",()=>{lastVideoTime=-1;analyze()});
 els.playBtn.addEventListener("click",()=>els.video.paused?els.video.play():els.video.pause());
-els.restartBtn.addEventListener("click",()=>{els.video.currentTime=0;lastVideoTime=-1;analyze()});
+els.restartBtn.addEventListener("click",()=>{resetBodyCalibration();els.video.currentTime=0;lastVideoTime=-1;analyze()});
 els.speedSelect.addEventListener("change",()=>els.video.playbackRate=Number(els.speedSelect.value));
 els.seekBar.addEventListener("input",()=>{
  if(mode!=="file"||!Number.isFinite(els.video.duration))return;
@@ -474,8 +558,16 @@ els.seekBar.addEventListener("input",()=>{
 // ---------- 3D VIEW ----------
 els.showJoints.addEventListener("change",()=>Object.values(joints).forEach(m=>m.visible=els.showJoints.checked && m.visible));
 els.showGrid.addEventListener("change",()=>grid.visible=els.showGrid.checked);
+function updateAnalysisGrid(){
+ const n=Number(els.gridDensity.value||3);
+ els.analysisGrid.style.display=els.showAnalysisGrid.checked?"block":"none";
+ els.analysisGrid.style.backgroundSize=`${100/n}% ${100/n}%`;
+}
+els.showAnalysisGrid.addEventListener("change",updateAnalysisGrid);
+els.gridDensity.addEventListener("change",updateAnalysisGrid);
+updateAnalysisGrid();
 function resetView(){camera.position.set(0,.55,4.7);controls.target.set(0,.35,0);controls.update()}
-els.resetViewBtn.addEventListener("click",resetView);
+els.resetViewBtn.addEventListener("click",()=>{resetView();resetBodyCalibration()});
 
 // ---------- RECORD / DOWNLOAD ----------
 function mime(){return["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm"].find(t=>MediaRecorder.isTypeSupported(t))||""}
