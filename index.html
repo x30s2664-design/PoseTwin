@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoseTwin v8 | Humanoid Teaching Model</title>
+<title>PoseTwin v8.1 | Humanoid Teaching Model</title>
 <style>
 :root{
   color-scheme:dark;
@@ -195,13 +195,14 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
     <button id="prevFrameBtn" type="button">◀ 前一格</button>
     <button id="nextFrameBtn" type="button">後一格 ▶</button>
     <button id="frontViewBtn" type="button">正面</button>
+    <button id="backViewBtn" type="button">背面</button>
     <button id="sideViewBtn" type="button">側面</button>
     <label class="check">平滑 <input id="smoothRange" type="range" min="0" max="90" value="68" style="width:110px"></label>
   </div>
 </section>
 
 <p class="help">
-  PoseTwin v8：v8 使用 Humanoid / VRM 教學人體模型：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v7.4 將上軀幹與骨盆改成兩格橢圓圓柱體，分別跟隨肩線與髖線旋轉；利用前後厚度差直接看出轉身與髖旋轉，不再使用尖錐方向標記。
+  PoseTwin v8.1：v8 使用 Humanoid / VRM 教學人體模型：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。v7.4 將上軀幹與骨盆改成兩格橢圓圓柱體，分別跟隨肩線與髖線旋轉；利用前後厚度差直接看出轉身與髖旋轉，不再使用尖錐方向標記。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -232,7 +233,7 @@ const els={
  timeLabel:$("#timeLabel"),fileMeta:$("#fileMeta"),leftEmpty:$("#leftEmpty"),rightEmpty:$("#rightEmpty"),
  status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),modelBuildCard:$("#modelBuildCard"),modelBuildTitle:$("#modelBuildTitle"),modelBuildState:$("#modelBuildState"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
  snapshotBtn:$("#snapshotBtn"),resetViewBtn:$("#resetViewBtn"),recordStatus:$("#recordStatus"),avatarStatus:$("#avatarStatus"),avatarModeSelect:$("#avatarModeSelect"),vrmInput:$("#vrmInput"),reloadVrmBtn:$("#reloadVrmBtn"),
- showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),sideViewBtn:$("#sideViewBtn")
+ showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),backViewBtn:$("#backViewBtn"),sideViewBtn:$("#sideViewBtn")
 };
 
 let poseLandmarker=null,objectUrl=null,mediaStream=null,mode="none",facingMode="user";
@@ -573,21 +574,48 @@ function aimNormalizedBone(name,targetDirWorld,amount=1){
  node.updateMatrixWorld(true);
 }
 
+let vrmVisualCenter=new THREE.Vector3(0,-.15,0);
+let vrmVisualRadius=1.65;
+
 function fitVrmToStage(){
  if(!currentVrm)return;
+
+ // Normalize old VRM0 facing direction when the library supports it.
+ try{
+   if(currentVrm.meta?.metaVersion==="0" && typeof VRMUtils.rotateVRM0==="function"){
+     VRMUtils.rotateVRM0(currentVrm);
+   }
+ }catch(e){console.warn("VRM0 rotation normalize skipped",e)}
+
  currentVrm.scene.updateMatrixWorld(true);
- const box=new THREE.Box3().setFromObject(currentVrm.scene);
+ let box=new THREE.Box3().setFromObject(currentVrm.scene);
  const size=new THREE.Vector3();box.getSize(size);
+
+ // v8.1: use a slightly smaller body so head/feet never feel clipped or too high.
+ const TARGET_HEIGHT=2.45;
  if(size.y>0){
-   const scale=2.85/size.y;
+   const scale=TARGET_HEIGHT/size.y;
    currentVrm.scene.scale.setScalar(scale);
  }
+
  currentVrm.scene.updateMatrixWorld(true);
- const box2=new THREE.Box3().setFromObject(currentVrm.scene);
- const center=new THREE.Vector3();box2.getCenter(center);
+ box=new THREE.Box3().setFromObject(currentVrm.scene);
+ const center=new THREE.Vector3();box.getCenter(center);
+
+ // Center X/Z and put the feet exactly on the floor.
  currentVrm.scene.position.x-=center.x;
  currentVrm.scene.position.z-=center.z;
- currentVrm.scene.position.y+=-1.55-box2.min.y;
+ currentVrm.scene.position.y+=grid.position.y-box.min.y;
+
+ currentVrm.scene.updateMatrixWorld(true);
+ const finalBox=new THREE.Box3().setFromObject(currentVrm.scene);
+ finalBox.getCenter(vrmVisualCenter);
+ const finalSize=new THREE.Vector3();finalBox.getSize(finalSize);
+ vrmVisualRadius=Math.max(1.25,finalSize.length()*.52);
+
+ // Keep orbit controls centered around the body rather than around the old origin.
+ controls.target.copy(vrmVisualCenter);
+ controls.update();
 }
 
 async function loadVrm(source,label="VRM"){
@@ -606,6 +634,7 @@ async function loadVrm(source,label="VRM"){
    scene.add(vrm.scene);
    fitVrmToStage();
    vrmRig=buildVrmRig();
+   resetView();
    vrmReady=!!vrmRig?.b?.hips;
    setAvatarStatus(vrmReady?`VRM：${label} 已就緒`:`VRM：${label} 缺少 Humanoid 骨架`,vrmReady);
    if(vrmReady){
@@ -840,13 +869,61 @@ function snapshotGhost(){
 function clearGhosts(){
  while(ghostFrames.length){ghostGroup.remove(ghostFrames.pop())}
 }
+function getPoseViewBasis(){
+ // Use the detected person's own body orientation, not a hard-coded world Z axis.
+ if(lastPosePoints){
+   const p=lastPosePoints;
+   const hc=mid(p.LH,p.RH),sc=mid(p.LS,p.RS);
+   const basis=bodyBasis(p.LS,p.RS,hc,sc,p.NOSE);
+   return {right:basis.x.clone().normalize(),up:basis.y.clone().normalize(),front:basis.z.clone().normalize()};
+ }
+ return {
+   right:new THREE.Vector3(1,0,0),
+   up:new THREE.Vector3(0,1,0),
+   front:new THREE.Vector3(0,0,1)
+ };
+}
+
+function getViewTarget(){
+ if(currentVrm && currentVrm.scene.visible){
+   currentVrm.scene.updateMatrixWorld(true);
+   const box=new THREE.Box3().setFromObject(currentVrm.scene);
+   const c=new THREE.Vector3();box.getCenter(c);
+   return c;
+ }
+ if(lastPosePoints){
+   const p=lastPosePoints;
+   return mid(mid(p.LH,p.RH),mid(p.LS,p.RS));
+ }
+ return new THREE.Vector3(0,-.15,0);
+}
+
 function setTeachingView(kind){
  controls.autoRotate=false; els.autoRotate.checked=false;
+
+ const target=getViewTarget();
+ const basis=getPoseViewBasis();
+ const dist=Math.max(4.2,vrmVisualRadius*2.65);
+
+ let dir;
  if(kind==="front"){
-   camera.position.set(0,.25,4.8); controls.target.set(0,-.25,0);
+   // Camera is placed in front of the detected person, looking toward the body.
+   dir=basis.front.clone();
+ }else if(kind==="back"){
+   dir=basis.front.clone().multiplyScalar(-1);
  }else{
-   camera.position.set(4.8,.25,0); controls.target.set(0,-.25,0);
+   dir=basis.right.clone();
  }
+
+ // Keep camera level enough for teaching; do not inherit large body pitch.
+ dir.y=0;
+ if(dir.lengthSq()<1e-6)dir.set(0,0,1);
+ dir.normalize();
+
+ camera.position.copy(target).add(dir.multiplyScalar(dist));
+ camera.position.y=target.y+.15;
+ controls.target.copy(target);
+ camera.lookAt(target);
  controls.update();
 }
 function stepFrame(dir){
@@ -859,6 +936,7 @@ els.teachingSpeedSelect?.addEventListener("change",()=>{const v=Number(els.teach
 els.prevFrameBtn?.addEventListener("click",()=>stepFrame(-1));
 els.nextFrameBtn?.addEventListener("click",()=>stepFrame(1));
 els.frontViewBtn?.addEventListener("click",()=>setTeachingView("front"));
+els.backViewBtn?.addEventListener("click",()=>setTeachingView("back"));
 els.sideViewBtn?.addEventListener("click",()=>setTeachingView("side"));
 els.ghostMode?.addEventListener("change",()=>{if(!els.ghostMode.checked)clearGhosts()});
 els.mirrorMode?.addEventListener("change",()=>clearGhosts());
@@ -1098,7 +1176,13 @@ function updateAnalysisGrid(){
 els.showAnalysisGrid.addEventListener("change",updateAnalysisGrid);
 els.gridDensity.addEventListener("change",updateAnalysisGrid);
 updateAnalysisGrid();
-function resetView(){camera.position.set(0,.55,4.7);controls.target.set(0,.35,0);controls.update()}
+function resetView(){
+ const target=(typeof getViewTarget==="function")?getViewTarget():new THREE.Vector3(0,-.15,0);
+ const dist=Math.max(4.5,vrmVisualRadius*2.8);
+ camera.position.set(target.x,target.y+.2,target.z+dist);
+ controls.target.copy(target);
+ controls.update();
+}
 els.resetViewBtn.addEventListener("click",()=>{resetView();resetBodyCalibration()});
 
 // ---------- RECORD / DOWNLOAD ----------
