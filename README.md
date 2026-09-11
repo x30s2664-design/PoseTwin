@@ -1,24 +1,32 @@
-# PoseTwin v4 — 3D Skeleton
+# PoseTwin v4.1 — MediaPipe 修復版
 
-這一版把右側從「線條骨架」改成真正的立體骨骼視覺化。
+這版針對畫面出現「模型載入失敗」進行修復。
 
-## 新增
-- 3D 圓柱骨段，不再是細線
-- 球狀關節
-- 3D 頭部與軀幹
-- MediaPipe `worldLandmarks` 驅動
-- 可拖曳旋轉 / 縮放 3D 視角
-- 顯示 / 隱藏地面格線
-- 自動旋轉
-- 重置 3D 視角
-- 前 / 後鏡頭切換
-- 直接錄製右側 3D 骨骼 WebM
-- 下載 3D 骨骼 PNG
+## 主要修正
 
-## 部署
-將新的 `index.html` 上傳至 GitHub `PoseTwin` repository 根目錄，覆蓋舊版檔案。
+- MediaPipe Tasks Vision 改用穩定版 `1.0.1`
+- WASM 路徑固定為 `@mediapipe/tasks-vision@1.0.1/wasm`
+- Pose model 改用固定版本 `/float16/1/`，不使用 `latest`
+- 優先 Full + GPU
+- GPU / Full 初始化失敗時，自動改用 Lite + CPU
+- 頁面新增「↻ 重試模型」
+- 頁面顯示實際初始化錯誤，方便手機除錯
+- 保留 3D 圓柱骨段、球狀關節、3D 視角、前後鏡頭、錄影與下載
 
-GitHub Pages 約數十秒到數分鐘後更新。
+## 更新 GitHub Pages
 
-## 注意
-此版本使用 Three.js 與 MediaPipe CDN，因此第一次開啟需要網路連線。
+1. 解壓縮 ZIP。
+2. 將新的 `index.html` 上傳到 PoseTwin repository 根目錄。
+3. 覆蓋舊版 `index.html`。
+4. Commit changes。
+5. 等待 GitHub Pages 重新部署。
+6. 手機重新整理；若仍看到舊版，可使用無痕視窗測試。
+
+## 正常狀態
+
+右上角應顯示其中一種：
+
+- `AI + 3D 骨骼已就緒（GPU / Full）`
+- `AI + 3D 骨骼已就緒（CPU / Lite）`
+
+播放影片後右側 FPS 會開始變動並顯示 3D 骨骼。

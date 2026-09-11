@@ -60,8 +60,11 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
     <div class="logo">🦴</div>
     <div><h1>PoseTwin</h1><p>原始影像 × 3D 骨骼動作同步分析</p></div>
   </div>
-  <div id="modelStatus" class="status"><span class="dot"></span><span>載入 AI 模型中…</span></div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div id="modelStatus" class="status"><span class="dot"></span><span>載入 AI 模型中…</span></div><button id="retryModelBtn" type="button" style="display:none">↻ 重試模型</button></div>
 </header>
+
+<div id="diagnostic" style="display:none;margin:0 0 13px;padding:10px 12px;border:1px solid #5d3340;
+background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82rem;line-height:1.55"></div>
 
 <section class="toolbar">
   <label class="file-label">⬆ 上傳影片<input id="videoInput" type="file" accept="video/*"></label>
@@ -115,7 +118,7 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
 </section>
 
 <p class="help">
-  右側不是 2D 線條，而是由 MediaPipe 3D world landmarks 驅動的立體骨骼：骨段使用圓柱、關節使用球體。
+  PoseTwin v4.1：使用 MediaPipe Tasks Vision 1.0.1 與固定版本模型。右側不是 2D 線條，而是由 MediaPipe 3D world landmarks 驅動的立體骨骼：骨段使用圓柱、關節使用球體。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -133,7 +136,7 @@ video,#threeHost{display:block;width:100%;height:100%;object-fit:contain;backgro
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FilesetResolver, PoseLandmarker }
-from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/vision_bundle.mjs";
+from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs";
 
 const $=s=>document.querySelector(s);
 const els={
@@ -141,7 +144,7 @@ const els={
  cameraBtn:$("#cameraBtn"),switchCameraBtn:$("#switchCameraBtn"),playBtn:$("#playBtn"),
  restartBtn:$("#restartBtn"),speedSelect:$("#speedSelect"),seekBar:$("#seekBar"),
  timeLabel:$("#timeLabel"),fileMeta:$("#fileMeta"),leftEmpty:$("#leftEmpty"),rightEmpty:$("#rightEmpty"),
- status:$("#modelStatus"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
+ status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
  snapshotBtn:$("#snapshotBtn"),resetViewBtn:$("#resetViewBtn"),recordStatus:$("#recordStatus"),
  showJoints:$("#showJoints"),showGrid:$("#showGrid"),autoRotate:$("#autoRotate")
 };
@@ -315,34 +318,82 @@ renderLoop();
 // ---------- MEDIAPIPE ----------
 function setStatus(t,type=""){els.status.className=`status ${type}`.trim();els.status.querySelector("span:last-child").textContent=t}
 async function initPose(){
+ const WASM_URL="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
+ const FULL_MODEL="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task";
+ const LITE_MODEL="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
+ els.retryModelBtn.style.display="none";
+ els.diagnostic.style.display="none";
+ els.diagnostic.textContent="";
+ setStatus("載入 AI 模型中…");
+
  try{
-  const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
-  poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
-   baseOptions:{
-    modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker_full/float16/latest/pose_landmarker_full.task",
-    delegate:"GPU"
-   },
-   runningMode:"VIDEO",numPoses:1,minPoseDetectionConfidence:.5,minPosePresenceConfidence:.5,minTrackingConfidence:.5
-  });
-  setStatus("AI + 3D 骨骼已就緒","ready");
- }catch(e){
-  console.warn(e);
-  try{
-   const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm");
+   // Recreate cleanly when retrying.
+   if(poseLandmarker){
+     try{ poseLandmarker.close(); }catch{}
+     poseLandmarker=null;
+   }
+
+   const vision=await FilesetResolver.forVisionTasks(WASM_URL);
+
+   // 1) Prefer the full model + GPU.
+   try{
+     poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
+       baseOptions:{
+         modelAssetPath:FULL_MODEL,
+         delegate:"GPU"
+       },
+       runningMode:"VIDEO",
+       numPoses:1,
+       minPoseDetectionConfidence:.5,
+       minPosePresenceConfidence:.5,
+       minTrackingConfidence:.5
+     });
+     setStatus("AI + 3D 骨骼已就緒（GPU / Full）","ready");
+     return;
+   }catch(gpuError){
+     console.warn("Full GPU init failed:",gpuError);
+   }
+
+   // 2) Fall back to Lite without forcing GPU.
    poseLandmarker=await PoseLandmarker.createFromOptions(vision,{
-    baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"},
-    runningMode:"VIDEO",numPoses:1
+     baseOptions:{modelAssetPath:LITE_MODEL},
+     runningMode:"VIDEO",
+     numPoses:1,
+     minPoseDetectionConfidence:.45,
+     minPosePresenceConfidence:.45,
+     minTrackingConfidence:.45
    });
-   setStatus("AI + 3D 骨骼已就緒（CPU）","ready");
-  }catch(err){console.error(err);setStatus("模型載入失敗","error")}
+
+   setStatus("AI + 3D 骨骼已就緒（CPU / Lite）","ready");
+ }catch(err){
+   console.error("MediaPipe initialization failed:",err);
+   setStatus("模型載入失敗","error");
+   els.retryModelBtn.style.display="inline-block";
+   els.diagnostic.style.display="block";
+
+   const secure = window.isSecureContext ? "是" : "否";
+   const online = navigator.onLine ? "是" : "否";
+   const msg = err?.message || String(err);
+   els.diagnostic.innerHTML =
+     "<b>MediaPipe 初始化失敗。</b><br>"+
+     "安全連線："+secure+"｜網路連線："+online+"<br>"+
+     "錯誤："+String(msg).replace(/[<>&]/g,s=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[s]))+
+     "<br>請先按「↻ 重試模型」。若仍失敗，請重新整理頁面並確認瀏覽器沒有封鎖 jsDelivr / Google Storage。";
  }
 }
+els.retryModelBtn.addEventListener("click",()=>initPose());
+
 function updateFPS(){
  fpsFrames++;const now=performance.now(),d=now-fpsStart;
  if(d>=800){els.fpsBadge.textContent=`${Math.round(fpsFrames*1000/d)} FPS`;fpsFrames=0;fpsStart=now}
 }
 async function analyze(){
- if(!poseLandmarker||els.video.readyState<2)return;
+ if(!poseLandmarker){
+   els.fpsBadge.textContent="AI 未就緒";
+   return;
+ }
+ if(els.video.readyState<2)return;
  try{
   const result=poseLandmarker.detectForVideo(els.video,performance.now());
   updateSkeleton(result);updateFPS();
@@ -403,7 +454,12 @@ els.video.addEventListener("loadedmetadata",()=>{
  els.playBtn.disabled=false;els.restartBtn.disabled=false;els.speedSelect.disabled=false;els.seekBar.disabled=false;enableOutput();timeline();
 });
 els.video.addEventListener("loadeddata",()=>analyze());
-els.video.addEventListener("play",()=>{if(mode!=="file")return;els.playBtn.textContent="⏸ 暫停";running=true;detectLoop()});
+els.video.addEventListener("play",()=>{
+ if(mode!=="file")return;
+ els.playBtn.textContent="⏸ 暫停";
+ running=true;
+ detectLoop();
+});
 els.video.addEventListener("pause",()=>{if(mode!=="file")return;els.playBtn.textContent="▶ 播放";running=false;analyze()});
 els.video.addEventListener("timeupdate",timeline);
 els.video.addEventListener("seeked",()=>{lastVideoTime=-1;analyze()});
