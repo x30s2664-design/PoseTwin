@@ -1,27 +1,16 @@
-# PoseTwin v8.3 — 自動視角 / 空間修正
+# PoseTwin v9.0.1 — 3D 人偶無法建立修正版
 
-本版針對「真人站直但 3D 人偶歪掉」修正。
+## 根因
+v9.0 在把單人狀態改成多人 Track 狀態時，誤刪了兩個必要的共用函式：
 
-## 新增
-- AUTO VIEW 視角判斷
-  - 正面
-  - 左/右斜面
-  - 左/右側面
-  - 背面傾向（保守判斷）
-- SOURCE 畫面即時顯示視角與估計 yaw。
-- 新增「自動視角／空間修正」開關。
+- `unitFrom(a,b,fallback)`
+- `bounded(v,lo,hi)`
 
-## 空間穩定策略
-- 左右側傾：主要依 2D 肩中心 / 髖中心。
-- 前後傾：只有限度採用 world landmark Z。
-- 肩線與髖線：融合 yaw + 2D roll。
-- 虛擬世界 Y 軸保持垂直，不讓單鏡頭深度誤差把整個人體推倒。
-- 側傾限制約 ±25°、前後傾約 ±18°。
-- 視角 yaw 使用時間平滑，避免 FRONT / SIDE 快速跳動。
+所以 AI 模型本身可以成功載入，但只要偵測到人體、開始建立 3D 人偶，就會出現 JavaScript ReferenceError，右側看不到模型。
 
-## 保留
-- No VRM
-- 15 節段人偶
-- GPU / Full + CPU / Lite fallback
-- 真實模型載入狀態（無假百分比）
-- 鏡像、慢速、逐格、殘影、正/背/側視角、錄影、截圖
+## 修正
+- 恢復 `unitFrom()`
+- 恢復 `bounded()`
+- 保留最多 3 人與獨立 Track
+- runtime error 會直接顯示在頁面診斷區
+- JavaScript 語法檢查通過
