@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PoseTwin | 3D Skeleton Motion</title>
+<title>PoseTwin v7.1 | 15-Segment Teaching Mannequin</title>
 <style>
 :root{
   color-scheme:dark;
@@ -105,9 +105,9 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
 </section>
 
 <section class="toolbar">
-  <button id="recordBtn" disabled>⏺ 開始錄製 3D 骨骼</button>
-  <button id="downloadBtn" disabled>⬇ 下載骨骼影片</button>
-  <button id="snapshotBtn" disabled>📸 下載骨骼截圖</button>
+  <button id="recordBtn" disabled>⏺ 開始錄製 3D 人偶</button>
+  <button id="downloadBtn" disabled>⬇ 下載人偶影片</button>
+  <button id="snapshotBtn" disabled>📸 下載人偶截圖</button>
   <button id="resetViewBtn">🎯 重置 3D 視角</button>
   <div class="spacer"></div><div id="recordStatus" class="meta">尚未錄製</div>
 </section>
@@ -125,10 +125,10 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
   </article>
 
   <article class="panel">
-    <div class="panel-head"><strong>🦴 3D 骨骼模型</strong><span id="fpsBadge" class="badge">0 FPS</span></div>
+    <div class="panel-head"><strong>🧍 15 節段 3D 人偶</strong><span id="fpsBadge" class="badge">0 FPS</span></div>
     <div class="stage">
       <div id="threeHost"></div>
-      <div id="rightEmpty" class="empty"><div><div class="ico">🧍</div><b>等待人體姿態</b><p>偵測到人體後會顯示立體骨段與關節。</p></div></div>
+      <div id="rightEmpty" class="empty"><div><div class="ico">🧍</div><b>等待人體姿態</b><p>偵測到人體後會顯示 15 節段立體教學人偶。</p></div></div>
     </div>
   </article>
 </section>
@@ -156,7 +156,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
     <label class="check"><input id="mirrorMode" type="checkbox" checked> 鏡像模仿</label>
     <label class="check"><input id="ghostMode" type="checkbox" checked> 動作殘影</label>
     <label class="check">播放速度
-      <select id="speedSelect" style="min-height:32px;padding:0 28px 0 8px">
+      <select id="teachingSpeedSelect" style="min-height:32px;padding:0 28px 0 8px">
         <option value="0.25">0.25×</option>
         <option value="0.5">0.5×</option>
         <option value="0.75">0.75×</option>
@@ -172,7 +172,7 @@ background:rgba(255,95,114,.08);border-radius:12px;color:#ffbac3;font-size:.82re
 </section>
 
 <p class="help">
-  PoseTwin v7：v7 使用 15 節段教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。
+  PoseTwin v7.1：v7 使用 15 節段教學人偶：頭頸 1、上軀幹 1、下軀幹/骨盆 1，左右各有上臂、前臂、手、大腿、小腿、腳。MediaPipe 關節點只負責內部驅動；學生主要看到有體積、左右分色的簡化人體。保留鏡像、慢速、逐格、正/側面、殘影、固定骨長、平滑與腳底貼地。
   可用滑鼠拖曳或手機手勢旋轉 3D 視角。錄製功能會直接錄製右側 WebGL 骨骼畫面。
 </p>
 </main>
@@ -200,7 +200,7 @@ const els={
  timeLabel:$("#timeLabel"),fileMeta:$("#fileMeta"),leftEmpty:$("#leftEmpty"),rightEmpty:$("#rightEmpty"),
  status:$("#modelStatus"),retryModelBtn:$("#retryModelBtn"),diagnostic:$("#diagnostic"),fpsBadge:$("#fpsBadge"),recordBtn:$("#recordBtn"),downloadBtn:$("#downloadBtn"),
  snapshotBtn:$("#snapshotBtn"),resetViewBtn:$("#resetViewBtn"),recordStatus:$("#recordStatus"),
- showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange",mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),speedSelect:$("#speedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),sideViewBtn:$("#sideViewBtn")
+ showJoints:$("#showJoints"),showGrid:$("#showGrid"),showAnalysisGrid:$("#showAnalysisGrid"),gridDensity:$("#gridDensity"),analysisGrid:$("#analysisGrid"),autoRotate:$("#autoRotate"),floorLock:$("#floorLock"),keepRoot:$("#keepRoot"),smoothRange:$("#smoothRange"),mirrorMode:$("#mirrorMode"),ghostMode:$("#ghostMode"),teachingSpeedSelect:$("#teachingSpeedSelect"),prevFrameBtn:$("#prevFrameBtn"),nextFrameBtn:$("#nextFrameBtn"),frontViewBtn:$("#frontViewBtn"),sideViewBtn:$("#sideViewBtn")
 };
 
 let poseLandmarker=null,objectUrl=null,mediaStream=null,mode="none",facingMode="user";
@@ -555,7 +555,7 @@ function stepFrame(dir){
  const fps=30;
  els.video.currentTime=Math.max(0,Math.min(els.video.duration,els.video.currentTime+dir/fps));
 }
-els.speedSelect?.addEventListener("change",()=>{els.video.playbackRate=Number(els.speedSelect.value)||1});
+els.teachingSpeedSelect?.addEventListener("change",()=>{const v=Number(els.teachingSpeedSelect.value)||1; els.video.playbackRate=v; if(els.speedSelect) els.speedSelect.value=String(v)});
 els.prevFrameBtn?.addEventListener("click",()=>stepFrame(-1));
 els.nextFrameBtn?.addEventListener("click",()=>stepFrame(1));
 els.frontViewBtn?.addEventListener("click",()=>setTeachingView("front"));
@@ -702,14 +702,54 @@ els.switchCameraBtn.addEventListener("click",async()=>{
 });
 els.videoInput.addEventListener("change",async e=>{
  const f=e.target.files?.[0];if(!f)return;
- running=false;await stopCamera();els.video.srcObject=null;
- if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(f);
- resetBodyCalibration();mode="file";els.video.src=objectUrl;els.video.load();
- els.fileMeta.textContent=`${f.name} · ${(f.size/1024/1024).toFixed(1)} MB`;els.leftEmpty.classList.add("hidden");
+ try{
+   if(!f.type.startsWith("video/") && !/\.(mp4|webm|mov|m4v|ogv|ogg)$/i.test(f.name)){
+     throw new Error("請選擇影片檔（建議 MP4 / WebM）");
+   }
+   running=false;
+   await stopCamera();
+   els.video.pause();
+   els.video.removeAttribute("src");
+   els.video.srcObject=null;
+   if(objectUrl)URL.revokeObjectURL(objectUrl);
+   objectUrl=URL.createObjectURL(f);
+   resetBodyCalibration();
+   mode="file";
+   lastVideoTime=-1;
+   els.video.src=objectUrl;
+   els.video.preload="auto";
+   els.video.load();
+   els.fileMeta.textContent=`${f.name} · ${(f.size/1024/1024).toFixed(1)} MB · 載入中…`;
+   els.leftEmpty.classList.add("hidden");
+   if(els.diagnostic){els.diagnostic.style.display="none";els.diagnostic.textContent=""}
+ }catch(err){
+   console.error(err);
+   mode="none";
+   els.fileMeta.textContent="影片載入失敗";
+   if(els.diagnostic){
+     els.diagnostic.style.display="block";
+     els.diagnostic.textContent=`影片上傳失敗：${err?.message||err}`;
+   }
+ }
 });
 els.video.addEventListener("loadedmetadata",()=>{
  if(mode!=="file")return;
- els.playBtn.disabled=false;els.restartBtn.disabled=false;els.speedSelect.disabled=false;els.seekBar.disabled=false;enableOutput();timeline();
+ els.playBtn.disabled=false;els.restartBtn.disabled=false;els.speedSelect.disabled=false;els.seekBar.disabled=false;
+ if(els.teachingSpeedSelect) els.teachingSpeedSelect.disabled=false;
+ enableOutput();timeline();
+ els.fileMeta.textContent=els.fileMeta.textContent.replace(" · 載入中…","");
+});
+els.video.addEventListener("error",()=>{
+ const mediaErr=els.video.error;
+ const msg=mediaErr?.code===4
+   ?"瀏覽器不支援此影片編碼；請改用 H.264 MP4 或 WebM。"
+   :"影片無法讀取，請重新選擇檔案。";
+ console.error("Video error",mediaErr);
+ els.fileMeta.textContent="影片載入失敗";
+ if(els.diagnostic){
+   els.diagnostic.style.display="block";
+   els.diagnostic.textContent=msg;
+ }
 });
 els.video.addEventListener("loadeddata",()=>analyze());
 els.video.addEventListener("play",()=>{
@@ -723,7 +763,7 @@ els.video.addEventListener("timeupdate",timeline);
 els.video.addEventListener("seeked",()=>{lastVideoTime=-1;analyze()});
 els.playBtn.addEventListener("click",()=>els.video.paused?els.video.play():els.video.pause());
 els.restartBtn.addEventListener("click",()=>{resetBodyCalibration();els.video.currentTime=0;lastVideoTime=-1;analyze()});
-els.speedSelect.addEventListener("change",()=>els.video.playbackRate=Number(els.speedSelect.value));
+els.speedSelect.addEventListener("change",()=>{const v=Number(els.speedSelect.value)||1; els.video.playbackRate=v; if(els.teachingSpeedSelect && [...els.teachingSpeedSelect.options].some(o=>Number(o.value)===v)) els.teachingSpeedSelect.value=String(v)});
 els.seekBar.addEventListener("input",()=>{
  if(mode!=="file"||!Number.isFinite(els.video.duration))return;
  els.video.currentTime=Number(els.seekBar.value)/1000*els.video.duration;timeline()
@@ -753,7 +793,7 @@ els.recordBtn.addEventListener("click",()=>{
  mediaRecorder.ondataavailable=e=>{if(e.data.size)recordedChunks.push(e.data)};
  mediaRecorder.onstop=()=>{
   recordedBlob=new Blob(recordedChunks,{type:mediaRecorder.mimeType||"video/webm"});
-  els.recordBtn.textContent="⏺ 開始錄製 3D 骨骼";els.recordBtn.classList.remove("recording");
+  els.recordBtn.textContent="⏺ 開始錄製 3D 人偶";els.recordBtn.classList.remove("recording");
   els.downloadBtn.disabled=false;els.recordStatus.textContent=`錄製完成 · ${(recordedBlob.size/1024/1024).toFixed(1)} MB`;
  };
  mediaRecorder.start(250);els.recordBtn.textContent="⏹ 停止錄製";els.recordBtn.classList.add("recording");els.recordStatus.textContent="正在錄製 3D 骨骼…"
