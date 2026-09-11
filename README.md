@@ -1,20 +1,27 @@
-# PoseTwin v7.4
+# PoseTwin v8 — VRM Humanoid
 
-本版完成兩個修正：
+這一版把右側模型架構從自製幾何人偶升級為 Humanoid / VRM。
 
-1. 移除假的模型百分比與進度條
-   - 不再顯示 8%、35%、55%、70% 等模擬數字。
-   - 只顯示程式真正知道的狀態：
-     - 正在載入 AI 姿態模型
-     - 正在建立 Full / GPU 模型
-     - 正在切換 CPU / Lite 相容模式
-     - ✓ 模型已就緒
-     - ✕ 模型建立失敗
+## 主要功能
+- 預設載入 VRM Humanoid 人體。
+- 使用 MediaPipe PoseLandmarker 驅動：
+  - Hips / 骨盆
+  - Spine / Chest / UpperChest
+  - Head
+  - 左右上臂、前臂
+  - 左右大腿、小腿、腳
+- 胸廓與骨盆分開驅動，轉身與扭腰比兩格圓柱更自然。
+- 可自行上傳 `.vrm` 模型。
+- VRM 載入失敗時，自動回退至原本 15 節段教學人偶。
+- 保留影片上傳、相機、鏡像、慢速、逐格、正側面、錄製與截圖。
+- 模型載入狀態不使用假的百分比。
 
-2. 移除胸口／骨盆的尖錐方向標記
-   - 上軀幹改為橢圓圓柱體
-   - 下軀幹／骨盆改為橢圓圓柱體
-   - 兩格圓柱分別跟隨肩線與髖線旋轉
-   - 利用圓柱的寬度與前後厚度差，使旋轉本身可直接看見
+## 預設 VRM
+預設從 GitHub / jsDelivr 載入 madjin/vrm-samples 的 Avatar_Orion.vrm。
+該 GitHub 專案將 Avatar Orion 列在可自由使用的 CC0 sample models 中。
 
-仍維持 15 節段教學模型。
+## 部署
+將 `index.html` 覆蓋 GitHub Pages repository 根目錄的 `index.html`。
+
+## 注意
+VRM 是外部網路資源；如果學校網路封鎖 jsDelivr，請使用「載入 VRM」選擇本機 `.vrm` 檔案，或切回「15 節段人偶」。
