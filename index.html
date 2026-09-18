@@ -1,160 +1,98 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>EmbodiedSpace — 有限容量具身空間分析</title>
-  <style>
-    :root{color-scheme:dark;--bg:#071018;--panel:#0d1822;--panel2:#111f2b;--line:#294052;--text:#eef7ff;--muted:#8fa8b8;--red:#ff4d4f;--yellow:#ffd43b;--blue:#35a7ff;--cyan:#59d8ff;--green:#3ddc97}
-    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#050b11,#0a141d 58%,#071018);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
-    button,input,select{font:inherit}.app{max-width:1500px;margin:auto;padding:14px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}.brand h1{font-size:clamp(20px,3vw,34px);margin:0}.brand p{margin:4px 0 0;color:var(--muted)}
-    .tabs{display:flex;gap:8px;flex-wrap:wrap}.tab,.btn{border:1px solid var(--line);background:#0f1c27;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer}.tab.active{border-color:#55bfff;background:#153147}.btn.primary{border-color:#2b9ee8;background:#0f5d8c}.btn.danger{border-color:#b43d46;background:#5c1c22}.btn:disabled{opacity:.45;cursor:not-allowed}
-    .grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(290px,.7fr);gap:12px}@media(max-width:980px){.grid{grid-template-columns:1fr}}
-    .card{background:rgba(12,24,34,.92);border:1px solid #203545;border-radius:16px;overflow:hidden;box-shadow:0 12px 36px rgba(0,0,0,.25)}
-    .stageWrap{position:relative;background:#000;min-height:360px;display:grid;place-items:center}.stageWrap canvas{display:block;max-width:100%;width:100%;height:auto;background:#000}.hud{position:absolute;left:12px;top:12px;background:rgba(5,12,18,.74);backdrop-filter:blur(6px);border:1px solid rgba(90,181,255,.45);border-radius:12px;padding:10px 12px;max-width:min(360px,75%);font-size:13px}.hud .status{font-weight:800;margin-bottom:5px}.hud small{color:#a8bdca}.busy{color:#ffd43b}.ok{color:#6ee7a8}.err{color:#ff7f86}
-    .toolbar{padding:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line)}.toolbar .grow{flex:1}.toolbar input[type=file]{max-width:100%}.time{font-variant-numeric:tabular-nums;color:#cfeaff;min-width:120px}
-    .side{display:flex;flex-direction:column;gap:12px}.section{padding:14px}.section h2{font-size:16px;margin:0 0 10px}.legend{display:grid;gap:9px}.legendRow{display:flex;gap:10px;align-items:flex-start;color:#dcebf5}.dot{width:16px;height:16px;border-radius:50%;margin-top:2px;flex:0 0 16px}.dot.red{background:var(--red)}.dot.yellow{background:var(--yellow)}.dot.blue{background:var(--blue)}
-    .ctrl{margin:12px 0}.ctrlHead{display:flex;justify-content:space-between;gap:10px;margin-bottom:6px}.ctrl label{color:#dfeaf2}.ctrl output{color:#8fdefd;font-variant-numeric:tabular-nums}.ctrl input[type=range]{width:100%}.note{font-size:12px;color:var(--muted);line-height:1.55;border-top:1px dashed #294052;padding-top:10px;margin-top:12px}
-    .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.metric{background:#0a141c;border:1px solid #203545;border-radius:12px;padding:10px}.metric b{display:block;font-size:18px}.metric span{font-size:12px;color:var(--muted)}
-    .modePanel{display:none}.modePanel.active{display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%}.seek{width:min(360px,100%)}
-    .footer{padding:10px 2px;color:#6f8796;font-size:12px;text-align:center}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#071018" />
+<title>EmbodiedSpace v0.2</title>
+<style>
+:root{color-scheme:dark;--bg:#061018;--panel:#0c1822;--line:#22394a;--text:#f1f7fb;--muted:#8ea7b6;--red:#ff5358;--yellow:#ffd84b;--blue:#39a8ff;--cyan:#66d6ff}
+*{box-sizing:border-box}body{margin:0;background:#061018;color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+.app{max-width:1580px;margin:auto;padding:16px}.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}.brand h1{font-size:clamp(24px,3vw,38px);margin:0}.brand p{margin:4px 0 0;color:var(--muted)}
+.tabs,.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tab,.btn{border:1px solid var(--line);background:#0f1d28;color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer}.tab.active,.btn.primary{background:#103f5b;border-color:#48b9ff}.btn:disabled{opacity:.45;cursor:not-allowed}
+.layout{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,.72fr);gap:12px}@media(max-width:1000px){.layout{grid-template-columns:1fr}}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.stageWrap{position:relative;background:#000;min-height:420px;display:grid;place-items:center}.stageWrap canvas{display:block;width:100%;height:auto;max-height:78vh;object-fit:contain}.hud{position:absolute;left:12px;top:12px;background:rgba(5,13,19,.82);border:1px solid rgba(73,184,255,.48);border-radius:12px;padding:9px 12px;font-size:13px;backdrop-filter:blur(6px)}.status{font-weight:800}.sub{display:block;color:#a9bdc9;margin-top:4px}.toolbar{padding:12px;border-top:1px solid var(--line)}.modePanel{display:none;gap:8px;align-items:center;flex-wrap:wrap;width:100%}.modePanel.active{display:flex}.seek{width:min(380px,100%)}.grow{flex:1}
+.side{display:flex;flex-direction:column;gap:12px}.section{padding:14px}.section h2{font-size:17px;margin:0 0 10px}.legend{display:grid;gap:9px}.legendRow{display:flex;gap:9px}.dot{width:16px;height:16px;border-radius:50%;margin-top:3px}.red{background:var(--red)}.yellow{background:var(--yellow)}.blue{background:var(--blue)}.small{font-size:12px;color:var(--muted);line-height:1.55}
+.ctrl{margin:12px 0}.ctrlHead{display:flex;justify-content:space-between;gap:12px;margin-bottom:6px}.ctrl output{color:var(--cyan);font-variant-numeric:tabular-nums}.ctrl input{width:100%}.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.metric{padding:10px;border:1px solid var(--line);border-radius:12px;background:#08131b}.metric b{font-size:20px;display:block}.metric span{font-size:12px;color:var(--muted)}.footer{text-align:center;color:#708897;font-size:12px;padding:12px}
+</style>
 </head>
 <body>
 <div class="app">
   <div class="top">
-    <div class="brand"><h1>EmbodiedSpace</h1><p>有限容量具身空間分析 · 照片 / 影片 / 即時相機</p></div>
-    <div class="tabs">
-      <button class="tab active" data-mode="image">照片</button>
-      <button class="tab" data-mode="video">影片</button>
-      <button class="tab" data-mode="camera">即時分析</button>
-    </div>
+    <div class="brand"><h1>EmbodiedSpace <small style="font-size:.48em;color:#7bd5ff">v0.2</small></h1><p>33 點姿態＋人體遮罩＋非均質近體空間 · 照片 / 影片 / 即時分析</p></div>
+    <div class="tabs"><button class="tab active" data-mode="image">照片</button><button class="tab" data-mode="video">影片</button><button class="tab" data-mode="camera">即時分析</button></div>
   </div>
-
-  <div class="grid">
+  <div class="layout">
     <div class="card">
-      <div class="stageWrap"><canvas id="stage" width="1280" height="720"></canvas>
-        <div class="hud"><div id="status" class="status busy">AI 模型載入中…</div><small id="subStatus">首次開啟需要下載模型；影像只在瀏覽器端處理。</small></div>
-      </div>
+      <div class="stageWrap"><canvas id="stage" width="1280" height="720"></canvas><div class="hud"><span id="status" class="status">AI 模型載入中…</span><span id="sub" class="sub">首次開啟需下載 MediaPipe 模型</span></div></div>
       <div class="toolbar">
-        <div id="panel-image" class="modePanel active"><input id="imageFile" type="file" accept="image/*"><button id="reanalyzeImage" class="btn" disabled>重新分析</button></div>
-        <div id="panel-video" class="modePanel"><input id="videoFile" type="file" accept="video/*"><button id="playVideo" class="btn" disabled>播放</button><button id="pauseVideo" class="btn" disabled>暫停</button><input id="seek" class="seek" type="range" min="0" max="1000" value="0" disabled><span id="videoTime" class="time">00:00 / 00:00</span></div>
-        <div id="panel-camera" class="modePanel"><button id="startCamera" class="btn primary">開啟相機</button><button id="stopCamera" class="btn" disabled>關閉相機</button><button id="startRec" class="btn" disabled>錄製分析畫面</button><button id="stopRec" class="btn danger" disabled>停止並儲存</button></div>
+        <div id="panel-image" class="modePanel active"><input id="imageFile" type="file" accept="image/*"><button id="reanalyze" class="btn" disabled>重新分析</button></div>
+        <div id="panel-video" class="modePanel"><input id="videoFile" type="file" accept="video/*"><button id="play" class="btn" disabled>播放</button><button id="pause" class="btn" disabled>暫停</button><input id="seek" class="seek" type="range" min="0" max="1000" value="0" disabled><span id="time">00:00 / 00:00</span></div>
+        <div id="panel-camera" class="modePanel"><button id="startCamera" class="btn primary">開啟相機</button><button id="stopCamera" class="btn" disabled>關閉相機</button><button id="startRec" class="btn" disabled>錄製分析</button><button id="stopRec" class="btn" disabled>停止錄製</button></div>
       </div>
     </div>
-
     <div class="side">
-      <div class="card section">
-        <h2>空間模型</h2>
-        <div class="legend">
-          <div class="legendRow"><span class="dot red"></span><div><b>本體空間</b><br><small>身體實際區域</small></div></div>
-          <div class="legendRow"><span class="dot yellow"></span><div><b>近體空間</b><br><small>身體周圍高敏感處理場；非均質</small></div></div>
-          <div class="legendRow"><span class="dot blue"></span><div><b>有限遠體空間</b><br><small>仍被當下表徵的較外圍有限場；再外面不著色</small></div></div>
-        </div>
-        <div class="note">本版刻意移除「可達空間」與「預期行動空間」。臉、手、腳的較大近體場屬於受皮質小人概念啟發的研究模型參數，不等同於直接生理測量。</div>
+      <div class="card section"><h2>空間模型</h2><div class="legend">
+        <div class="legendRow"><span class="dot red"></span><div><b>本體空間</b><div class="small">優先使用人體 segmentation；失敗才退回 33 點重建</div></div></div>
+        <div class="legendRow"><span class="dot yellow"></span><div><b>近體空間</b><div class="small">沿人體真實輪廓向外擴張，臉／手／腳加權較大</div></div></div>
+        <div class="legendRow"><span class="dot blue"></span><div><b>有限遠體空間</b><div class="small">只從 PPS 外緣再延伸一圈，不把整張畫面塗藍</div></div></div>
+      </div><p class="small">此版移除可達與預期空間。部位倍率屬研究模型參數，不代表生理實測值。</p></div>
+      <div class="card section"><h2>近體空間參數</h2>
+        <div class="ctrl"><div class="ctrlHead"><label>基礎 PPS</label><output id="oBase">0.18×身寬</output></div><input id="wBase" type="range" min="0.08" max="0.45" step="0.01" value="0.18"></div>
+        <div class="ctrl"><div class="ctrlHead"><label>臉 / 頭</label><output id="oFace">1.40×</output></div><input id="wFace" type="range" min="0.6" max="2.2" step="0.05" value="1.40"></div>
+        <div class="ctrl"><div class="ctrlHead"><label>手</label><output id="oHand">1.50×</output></div><input id="wHand" type="range" min="0.6" max="2.5" step="0.05" value="1.50"></div>
+        <div class="ctrl"><div class="ctrlHead"><label>腳</label><output id="oFoot">1.20×</output></div><input id="wFoot" type="range" min="0.6" max="2.2" step="0.05" value="1.20"></div>
+        <div class="ctrl"><div class="ctrlHead"><label>手臂 / 小腿</label><output id="oLimb">0.80×</output></div><input id="wLimb" type="range" min="0.4" max="1.8" step="0.05" value="0.80"></div>
+        <div class="ctrl"><div class="ctrlHead"><label>軀幹</label><output id="oTorso">0.60×</output></div><input id="wTorso" type="range" min="0.3" max="1.5" step="0.05" value="0.60"></div>
+        <div class="ctrl"><div class="ctrlHead"><label>遠體外延</label><output id="oFar">0.45×身寬</output></div><input id="wFar" type="range" min="0.10" max="1.20" step="0.05" value="0.45"></div>
       </div>
-
-      <div class="card section">
-        <h2>部位權重</h2>
-        <div class="ctrl"><div class="ctrlHead"><label>臉 / 頭</label><output id="oFace">1.4×</output></div><input id="wFace" type="range" min="0.4" max="2.2" step="0.05" value="1.4"></div>
-        <div class="ctrl"><div class="ctrlHead"><label>手（含手掌）</label><output id="oHand">1.5×</output></div><input id="wHand" type="range" min="0.4" max="2.5" step="0.05" value="1.5"></div>
-        <div class="ctrl"><div class="ctrlHead"><label>腳（含腳掌）</label><output id="oFoot">1.2×</output></div><input id="wFoot" type="range" min="0.4" max="2.2" step="0.05" value="1.2"></div>
-        <div class="ctrl"><div class="ctrlHead"><label>手臂 / 小腿</label><output id="oLimb">0.8×</output></div><input id="wLimb" type="range" min="0.3" max="1.8" step="0.05" value="0.8"></div>
-        <div class="ctrl"><div class="ctrlHead"><label>軀幹</label><output id="oTorso">0.6×</output></div><input id="wTorso" type="range" min="0.25" max="1.6" step="0.05" value="0.6"></div>
-        <div class="ctrl"><div class="ctrlHead"><label>有限遠體倍率</label><output id="oFar">1.55×</output></div><input id="wFar" type="range" min="1.1" max="2.4" step="0.05" value="1.55"></div>
-      </div>
-
-      <div class="card section">
-        <h2>分析狀態</h2>
-        <div class="metrics"><div class="metric"><b id="mPeople">0</b><span>辨識人物</span></div><div class="metric"><b id="mFps">0</b><span>分析 FPS</span></div><div class="metric"><b id="mMode">照片</b><span>目前模式</span></div><div class="metric"><b id="mFrame">—</b><span>影格尺寸</span></div></div>
-      </div>
+      <div class="card section"><h2>分析狀態</h2><div class="metrics"><div class="metric"><b id="mPeople">0</b><span>辨識人物</span></div><div class="metric"><b id="mFps">0</b><span>分析 FPS</span></div><div class="metric"><b id="mMask">—</b><span>人體遮罩</span></div><div class="metric"><b id="mFrame">—</b><span>影格尺寸</span></div></div></div>
     </div>
   </div>
-  <div class="footer">MVP v0.1 · MediaPipe Pose Landmarker · Browser-only processing</div>
+  <div class="footer">MediaPipe Pose Landmarker Full · outputSegmentationMasks · Browser-only</div>
 </div>
-
-<video id="videoEl" playsinline muted style="display:none"></video>
-<img id="imageEl" alt="" style="display:none">
-
+<video id="video" playsinline muted style="display:none"></video><img id="img" style="display:none" alt="">
 <script type="module">
-import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
-
-const $ = s => document.querySelector(s);
-const stage = $('#stage'), ctx = stage.getContext('2d');
-const video = $('#videoEl'), image = $('#imageEl');
-const state = {mode:'image', landmarker:null, ready:false, stream:null, raf:0, imageLoaded:false, recorder:null, chunks:[], lastTick:performance.now(), frames:0, fps:0, lastResult:null};
-const cfg = {face:1.4,hand:1.5,foot:1.2,limb:.8,torso:.6,far:1.55};
-
-const POSE_CONNECTIONS = [[11,12],[11,13],[13,15],[12,14],[14,16],[11,23],[12,24],[23,24],[23,25],[25,27],[27,31],[24,26],[26,28],[28,32]];
-
-function status(text, cls='ok', sub){ $('#status').textContent=text; $('#status').className='status '+cls; if(sub!==undefined) $('#subStatus').textContent=sub; }
-function modeName(){ return state.mode==='image'?'照片':state.mode==='video'?'影片':'即時'; }
-function setCanvasSize(w,h){ if(!w||!h)return; if(stage.width!==w||stage.height!==h){ stage.width=w;stage.height=h; } $('#mFrame').textContent=`${w}×${h}`; }
-function fmtTime(sec){ if(!isFinite(sec))return '00:00'; const m=Math.floor(sec/60),s=Math.floor(sec%60); return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
-function dist(a,b,w,h){return Math.hypot((a.x-b.x)*w,(a.y-b.y)*h)}
-function mid(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
-function pt(lm,i,w,h){return {x:lm[i].x*w,y:lm[i].y*h}}
-
-function radial(x,y,r,inner,outer){ const g=ctx.createRadialGradient(x,y,Math.max(1,r*.08),x,y,r); g.addColorStop(0,inner); g.addColorStop(.58,inner); g.addColorStop(1,outer); ctx.fillStyle=g; ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill(); }
-function capsule(a,b,r,color){ const dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);ctx.save();ctx.translate(a.x,a.y);ctx.rotate(Math.atan2(dy,dx));ctx.fillStyle=color;ctx.beginPath();ctx.roundRect(0,-r,L,r*2,r);ctx.fill();ctx.restore(); }
-
-function bodyScale(lm,w,h){ const sw=dist(lm[11],lm[12],w,h), sh=dist(mid(lm[11],lm[12]),mid(lm[23],lm[24]),w,h); return Math.max(28, sw*.72+sh*.42); }
-
-function drawSpaceField(lm, personIndex){
-  const w=stage.width,h=stage.height,s=bodyScale(lm,w,h);
-  const anchors=[];
-  const add=(i,weight,type)=>{ if(lm[i] && (lm[i].visibility??1)>.35){ const p=pt(lm,i,w,h); anchors.push({...p,weight,type}); }};
-  add(0,cfg.face,'face');
-  add(15,cfg.hand,'hand'); add(16,cfg.hand,'hand');
-  add(31,cfg.foot,'foot'); add(32,cfg.foot,'foot');
-  [13,14,25,26].forEach(i=>add(i,cfg.limb,'limb'));
-  const tc=mid(mid(lm[11],lm[12]),mid(lm[23],lm[24])); anchors.push({x:tc.x*w,y:tc.y*h,weight:cfg.torso,type:'torso'});
-
-  ctx.save(); ctx.globalCompositeOperation='screen';
-  for(const a of anchors){ const nr=s*(.52*a.weight+.12); const fr=nr*cfg.far; radial(a.x,a.y,fr,'rgba(28,137,255,.23)','rgba(28,137,255,0)'); }
-  for(const a of anchors){ const nr=s*(.52*a.weight+.12); radial(a.x,a.y,nr,'rgba(255,215,35,.42)','rgba(255,215,35,0)'); }
-  ctx.restore();
-
-  // finite far boundary
-  ctx.save();ctx.strokeStyle='rgba(95,196,255,.80)';ctx.lineWidth=Math.max(2,s*.025);ctx.setLineDash([Math.max(7,s*.12),Math.max(6,s*.09)]);
-  const bbox=anchors.reduce((b,a)=>({minX:Math.min(b.minX,a.x),minY:Math.min(b.minY,a.y),maxX:Math.max(b.maxX,a.x),maxY:Math.max(b.maxY,a.y)}),{minX:1e9,minY:1e9,maxX:-1e9,maxY:-1e9});
-  const pad=s*cfg.far*.56; ctx.beginPath();ctx.roundRect(Math.max(2,bbox.minX-pad),Math.max(2,bbox.minY-pad),Math.min(w-4,bbox.maxX-bbox.minX+pad*2),Math.min(h-4,bbox.maxY-bbox.minY+pad*2),Math.max(16,s*.45));ctx.stroke();ctx.restore();
-
-  // body space (red skeleton + torso/limb capsules)
-  ctx.save();ctx.globalCompositeOperation='source-over';
-  const thick=Math.max(9,s*.15); for(const [a,b] of POSE_CONNECTIONS){if(lm[a]&&lm[b]&&(lm[a].visibility??1)>.25&&(lm[b].visibility??1)>.25)capsule(pt(lm,a,w,h),pt(lm,b,w,h),thick*.45,'rgba(255,57,62,.23)');}
-  const ls=pt(lm,11,w,h),rs=pt(lm,12,w,h),lh=pt(lm,23,w,h),rh=pt(lm,24,w,h); ctx.fillStyle='rgba(255,57,62,.22)';ctx.beginPath();ctx.moveTo(ls.x,ls.y);ctx.lineTo(rs.x,rs.y);ctx.lineTo(rh.x,rh.y);ctx.lineTo(lh.x,lh.y);ctx.closePath();ctx.fill();
-  ctx.strokeStyle='rgba(255,82,87,.96)';ctx.lineWidth=Math.max(2.5,s*.035);ctx.setLineDash([]); for(const [a,b] of POSE_CONNECTIONS){if(lm[a]&&lm[b]&&(lm[a].visibility??1)>.25&&(lm[b].visibility??1)>.25){ctx.beginPath();const p1=pt(lm,a,w,h),p2=pt(lm,b,w,h);ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();}}
-  [0,11,12,13,14,15,16,23,24,25,26,27,28,31,32].forEach(i=>{if(lm[i]&&(lm[i].visibility??1)>.25){const p=pt(lm,i,w,h);ctx.fillStyle='#ff4d4f';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(3,s*.05),0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.stroke();}});
-  ctx.fillStyle='rgba(5,12,18,.82)';ctx.strokeStyle='rgba(255,255,255,.24)';ctx.lineWidth=1;const p=pt(lm,0,w,h);ctx.font=`700 ${Math.max(14,s*.17)}px system-ui`;ctx.fillText(`P${personIndex+1}`,p.x+s*.20,p.y-s*.18);
-  ctx.restore();
-}
-
-function drawResult(result){ const people=result?.landmarks||[]; $('#mPeople').textContent=people.length; people.forEach((lm,i)=>drawSpaceField(lm,i)); state.lastResult=result; }
-function fpsTick(){ state.frames++; const now=performance.now(); if(now-state.lastTick>1000){state.fps=Math.round(state.frames*1000/(now-state.lastTick));state.frames=0;state.lastTick=now;$('#mFps').textContent=state.fps;} }
-
-async function ensureMode(mode){ if(!state.landmarker)return; const desired=mode==='image'?'IMAGE':'VIDEO'; await state.landmarker.setOptions({runningMode:desired}); }
-async function analyzeImage(){ if(!state.ready||!state.imageLoaded)return; await ensureMode('image'); setCanvasSize(image.naturalWidth,image.naturalHeight);ctx.clearRect(0,0,stage.width,stage.height);ctx.drawImage(image,0,0,stage.width,stage.height); const res=state.landmarker.detect(image); drawResult(res); status(`完成：辨識 ${res.landmarks?.length||0} 人`,'ok'); }
-
-async function analyzeVideoFrame(){ if(!state.ready||!video.videoWidth)return; await ensureMode('video'); setCanvasSize(video.videoWidth,video.videoHeight);ctx.clearRect(0,0,stage.width,stage.height);ctx.drawImage(video,0,0,stage.width,stage.height); const res=state.landmarker.detectForVideo(video,performance.now());drawResult(res);fpsTick(); if(state.mode==='video'){ $('#seek').value=video.duration?Math.round(video.currentTime/video.duration*1000):0;$('#videoTime').textContent=`${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;} }
-async function loop(){ if(state.mode==='camera'||(state.mode==='video'&&!video.paused&&!video.ended)){ try{ await analyzeVideoFrame(); }catch(e){console.warn(e);} } state.raf=requestAnimationFrame(loop); }
-
-function stopMedia(){ cancelAnimationFrame(state.raf); if(state.stream){state.stream.getTracks().forEach(t=>t.stop());state.stream=null;} video.pause();video.srcObject=null; }
-async function setMode(mode){ stopMedia(); state.mode=mode; document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));document.querySelectorAll('.modePanel').forEach(p=>p.classList.remove('active'));$('#panel-'+mode).classList.add('active');$('#mMode').textContent=modeName();ctx.clearRect(0,0,stage.width,stage.height);$('#mPeople').textContent='0';$('#mFps').textContent='0'; status(state.ready?'等待輸入':'AI 模型載入中…',state.ready?'ok':'busy',mode==='camera'?'相機模式需要 HTTPS 或 localhost。':'影像只在瀏覽器端處理。'); }
-
-document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
-$('#imageFile').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;image.onload=()=>{state.imageLoaded=true;$('#reanalyzeImage').disabled=false;analyzeImage();};image.src=URL.createObjectURL(f);});
-$('#reanalyzeImage').addEventListener('click',analyzeImage);
-$('#videoFile').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return; stopMedia();video.srcObject=null;video.src=URL.createObjectURL(f);video.onloadedmetadata=()=>{setCanvasSize(video.videoWidth,video.videoHeight);$('#playVideo').disabled=false;$('#pauseVideo').disabled=false;$('#seek').disabled=false;$('#videoTime').textContent=`00:00 / ${fmtTime(video.duration)}`;video.currentTime=0;video.onseeked=()=>analyzeVideoFrame();analyzeVideoFrame();};});
-$('#playVideo').addEventListener('click',async()=>{await video.play();cancelAnimationFrame(state.raf);loop();});$('#pauseVideo').addEventListener('click',()=>video.pause());$('#seek').addEventListener('input',()=>{if(video.duration)video.currentTime=(+$('#seek').value/1000)*video.duration;});
-$('#startCamera').addEventListener('click',async()=>{try{stopMedia();state.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=state.stream;await video.play();$('#startCamera').disabled=true;$('#stopCamera').disabled=false;$('#startRec').disabled=false;status('即時分析中','ok','本體 / 非均質近體 / 有限遠體');cancelAnimationFrame(state.raf);loop();}catch(e){status('無法開啟相機','err',e.message);}});
-$('#stopCamera').addEventListener('click',()=>{stopMedia();$('#startCamera').disabled=false;$('#stopCamera').disabled=true;$('#startRec').disabled=true;$('#stopRec').disabled=true;status('相機已關閉','ok');});
-$('#startRec').addEventListener('click',()=>{try{state.chunks=[];const stream=stage.captureStream(30);state.recorder=new MediaRecorder(stream,{mimeType:MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm'});state.recorder.ondataavailable=e=>{if(e.data.size)state.chunks.push(e.data)};state.recorder.onstop=()=>{const blob=new Blob(state.chunks,{type:'video/webm'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`embodied-space-${Date.now()}.webm`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)};state.recorder.start();$('#startRec').disabled=true;$('#stopRec').disabled=false;status('REC · 正在錄製分析畫面','err');}catch(e){status('錄製啟動失敗','err',e.message)}});
-$('#stopRec').addEventListener('click',()=>{if(state.recorder?.state==='recording')state.recorder.stop();$('#startRec').disabled=false;$('#stopRec').disabled=true;status('錄製完成','ok');});
-
-[['wFace','oFace','face'],['wHand','oHand','hand'],['wFoot','oFoot','foot'],['wLimb','oLimb','limb'],['wTorso','oTorso','torso'],['wFar','oFar','far']].forEach(([id,out,key])=>{$('#'+id).addEventListener('input',e=>{cfg[key]=+e.target.value;$('#'+out).value=`${(+e.target.value).toFixed(key==='far'?2:1)}×`; if(state.mode==='image'&&state.imageLoaded)analyzeImage(); else if(state.mode==='video'&&video.videoWidth&&video.paused)analyzeVideoFrame();});});
-
-(async()=>{try{const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');state.landmarker=await PoseLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:6,minPoseDetectionConfidence:.45,minPosePresenceConfidence:.45,minTrackingConfidence:.45});state.ready=true;status('AI 已就緒','ok','請選擇照片、影片或開啟相機。');}catch(e){console.error(e);status('模型載入失敗','err','請確認網路連線後重新整理。 '+e.message);}})();
+import { FilesetResolver, PoseLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm";
+const $=s=>document.querySelector(s), canvas=$('#stage'),ctx=canvas.getContext('2d',{alpha:true}),video=$('#video'),img=$('#img');
+const S={mode:'image',pose:null,ready:false,stream:null,raf:0,imageLoaded:false,rec:null,chunks:[],lastT:performance.now(),frames:0,lastResult:null,lastSource:null};
+const C={base:.18,face:1.4,hand:1.5,foot:1.2,limb:.8,torso:.6,far:.45};
+function setStatus(a,b=''){ $('#status').textContent=a; $('#sub').textContent=b; }
+function fmt(t){if(!isFinite(t))return'00:00';return `${String(Math.floor(t/60)).padStart(2,'0')}:${String(Math.floor(t%60)).padStart(2,'0')}`}
+function size(w,h){if(!w||!h)return;canvas.width=w;canvas.height=h;$('#mFrame').textContent=`${w}×${h}`}
+function visible(lm,i,min=.28){const p=lm?.[i];return !!p&&(p.visibility??1)>=min&&(p.presence??1)>=min}
+function point(lm,i){return visible(lm,i)?{x:lm[i].x*canvas.width,y:lm[i].y*canvas.height}:null}
+function bounds(lm){const p=lm.map((v,i)=>({i,x:v.x*canvas.width,y:v.y*canvas.height,v:v.visibility??1})).filter(v=>v.v>.30&&v.i<=32);if(!p.length)return null;let minX=1e9,minY=1e9,maxX=-1,maxY=-1;for(const q of p){minX=Math.min(minX,q.x);minY=Math.min(minY,q.y);maxX=Math.max(maxX,q.x);maxY=Math.max(maxY,q.y)}return{minX,minY,maxX,maxY,w:maxX-minX,h:maxY-minY,cx:(minX+maxX)/2,cy:(minY+maxY)/2}}
+function refWidth(lm,b){if(visible(lm,11)&&visible(lm,12)){const a=point(lm,11),d=point(lm,12),v=Math.hypot(a.x-d.x,a.y-d.y);if(v>20)return v}if(visible(lm,23)&&visible(lm,24)){const a=point(lm,23),d=point(lm,24),v=Math.hypot(a.x-d.x,a.y-d.y);if(v>20)return v*1.15}return Math.max(55,b.w*.42)}
+function maskCanvas(){const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;return c}
+function capsule(m,a,b,w){if(!a||!b)return;m.save();m.strokeStyle='#fff';m.lineCap='round';m.lineJoin='round';m.lineWidth=w;m.beginPath();m.moveTo(a.x,a.y);m.lineTo(b.x,b.y);m.stroke();m.restore()}
+function polygon(m,pts){pts=pts.filter(Boolean);if(pts.length<3)return;m.save();m.fillStyle='#fff';m.beginPath();m.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>m.lineTo(p.x,p.y));m.closePath();m.fill();m.restore()}
+function fallbackBodyMask(lm,b){const out=maskCanvas(),m=out.getContext('2d'),r=refWidth(lm,b),p=i=>point(lm,i);const P={p0:p(0),p11:p(11),p12:p(12),p13:p(13),p14:p(14),p15:p(15),p16:p(16),p23:p(23),p24:p(24),p25:p(25),p26:p(26),p27:p(27),p28:p(28),p31:p(31),p32:p(32)};polygon(m,[P.p11,P.p12,P.p24,P.p23]);capsule(m,P.p11,P.p13,r*.18);capsule(m,P.p13,P.p15,r*.15);capsule(m,P.p12,P.p14,r*.18);capsule(m,P.p14,P.p16,r*.15);capsule(m,P.p23,P.p25,r*.22);capsule(m,P.p25,P.p27,r*.16);capsule(m,P.p24,P.p26,r*.22);capsule(m,P.p26,P.p28,r*.16);m.fillStyle='#fff';for(const q of[P.p15,P.p16,P.p31,P.p32])if(q){m.beginPath();m.arc(q.x,q.y,r*.08,0,Math.PI*2);m.fill()}if(P.p0){m.beginPath();m.ellipse(P.p0.x,P.p0.y,r*.19,r*.24,0,0,Math.PI*2);m.fill()}return out}
+function segmentationMask(result,index=0){const mp=result?.segmentationMasks?.[index];if(!mp||typeof mp.getAsFloat32Array!=='function')return null;let vals;try{vals=mp.getAsFloat32Array()}catch{return null}if(!vals?.length)return null;const sw=Number(mp.width||canvas.width),sh=Number(mp.height||canvas.height),tw=Math.max(1,Math.round(sw/2)),th=Math.max(1,Math.round(sh/2)),small=document.createElement('canvas');small.width=tw;small.height=th;const s=small.getContext('2d'),im=s.createImageData(tw,th);for(let y=0;y<th;y++){const sy=Math.min(sh-1,Math.floor(y*sh/th));for(let x=0;x<tw;x++){const sx=Math.min(sw-1,Math.floor(x*sw/tw)),conf=vals[sy*sw+sx]||0,i=(y*tw+x)*4,a=conf>=.50?255:conf>=.32?150:0;im.data[i]=im.data[i+1]=im.data[i+2]=255;im.data[i+3]=a}}s.putImageData(im,0,0);const out=maskCanvas(),o=out.getContext('2d');o.imageSmoothingEnabled=true;o.drawImage(small,0,0,out.width,out.height);return out}
+function dilate(mask,r){const out=maskCanvas(),o=out.getContext('2d');if(!mask)return out;r=Math.max(0,r);o.drawImage(mask,0,0);if(r<.5)return out;for(const [rad,n] of [[r,28],[r*.55,14]])for(let i=0;i<n;i++){const a=i/n*Math.PI*2;o.drawImage(mask,Math.cos(a)*rad,Math.sin(a)*rad)}return out}
+function subtract(a,b){const out=maskCanvas(),o=out.getContext('2d');o.drawImage(a,0,0);o.globalCompositeOperation='destination-out';o.drawImage(b,0,0);o.globalCompositeOperation='source-over';return out}
+function merge(...arr){const out=maskCanvas(),o=out.getContext('2d');arr.filter(Boolean).forEach(m=>o.drawImage(m,0,0));return out}
+function colorMask(mask,color){const tmp=maskCanvas(),t=tmp.getContext('2d');t.drawImage(mask,0,0);t.globalCompositeOperation='source-in';t.fillStyle=color;t.fillRect(0,0,tmp.width,tmp.height);ctx.drawImage(tmp,0,0)}
+function circleMask(x,y,r){const c=maskCanvas(),m=c.getContext('2d');m.fillStyle='#fff';m.beginPath();m.arc(x,y,Math.max(3,r),0,Math.PI*2);m.fill();return c}
+function limbExtraMask(lm,base,rw){const c=maskCanvas(),m=c.getContext('2d'),pairs=[[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28]];m.strokeStyle='#fff';m.lineCap='round';m.lineJoin='round';m.lineWidth=Math.max(5,base*C.limb*1.1);for(const[a,b]of pairs){const p=point(lm,a),q=point(lm,b);if(p&&q){m.beginPath();m.moveTo(p.x,p.y);m.lineTo(q.x,q.y);m.stroke()}}return c}
+function torsoExtraMask(lm,base){const c=maskCanvas(),m=c.getContext('2d');const pts=[point(lm,11),point(lm,12),point(lm,24),point(lm,23)].filter(Boolean);if(pts.length===4){m.fillStyle='#fff';m.beginPath();m.moveTo(pts[0].x,pts[0].y);pts.slice(1).forEach(p=>m.lineTo(p.x,p.y));m.closePath();m.fill();return dilate(c,base*C.torso)}return c}
+function groupCenter(lm,ids,minCount=1){const pts=ids.filter(i=>visible(lm,i,.22)).map(i=>lm[i]);if(pts.length<minCount)return null;return{x:pts.reduce((s,p)=>s+p.x,0)/pts.length*canvas.width,y:pts.reduce((s,p)=>s+p.y,0)/pts.length*canvas.height}}
+function weightedPpsMask(lm,body,b){const rw=refWidth(lm,b),base=Math.max(8,rw*C.base),baseMask=dilate(body,base*.55),parts=[];const face=groupCenter(lm,[0,1,2,3,4,5,6,7,8,9,10],3),lh=groupCenter(lm,[15,17,19,21]),rh=groupCenter(lm,[16,18,20,22]),lf=groupCenter(lm,[27,29,31],2),rf=groupCenter(lm,[28,30,32],2);if(face)parts.push(circleMask(face.x,face.y,base*C.face));if(lh)parts.push(circleMask(lh.x,lh.y,base*C.hand));if(rh)parts.push(circleMask(rh.x,rh.y,base*C.hand));if(lf)parts.push(circleMask(lf.x,lf.y,base*C.foot));if(rf)parts.push(circleMask(rf.x,rf.y,base*C.foot));parts.push(limbExtraMask(lm,base,rw));parts.push(torsoExtraMask(lm,base));return{mask:merge(baseMask,...parts),rw,base}}
+function drawSkeleton(lm){ctx.save();ctx.strokeStyle='rgba(255,79,85,.95)';ctx.fillStyle='#ff4f55';ctx.lineWidth=Math.max(2,canvas.width/600);ctx.lineCap='round';for(const c of PoseLandmarker.POSE_CONNECTIONS){if(c.start<=10&&c.end<=10)continue;const a=point(lm,c.start),b=point(lm,c.end);if(a&&b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}for(let i=0;i<33;i++){if(!visible(lm,i,.22))continue;const p=point(lm,i);ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2.5,canvas.width/400),0,Math.PI*2);ctx.fill()}ctx.restore()}
+function drawPerson(lm,result,index){const b=bounds(lm);if(!b)return;const seg=segmentationMask(result,index),body=seg||fallbackBodyMask(lm,b);$('#mMask').textContent=seg?'SEG':'POSE';const P=weightedPpsMask(lm,body,b),farOuter=dilate(P.mask,Math.max(8,P.rw*C.far)),farRing=subtract(farOuter,P.mask),ppsRing=subtract(P.mask,body);colorMask(farRing,'rgba(28,116,210,.28)');colorMask(ppsRing,'rgba(255,214,55,.28)');colorMask(body,'rgba(255,70,75,.22)');drawSkeleton(lm);const h=point(lm,0)||{x:b.cx,y:b.minY};ctx.save();ctx.font=`700 ${Math.max(14,canvas.width/70)}px system-ui`;ctx.fillStyle='#fff';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=4;ctx.strokeText(`P${index+1}`,h.x+10,h.y-12);ctx.fillText(`P${index+1}`,h.x+10,h.y-12);ctx.restore()}
+function drawFrame(source,result){size(source.videoWidth||source.naturalWidth,source.videoHeight||source.naturalHeight);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0,canvas.width,canvas.height);const people=result?.landmarks||[];$('#mPeople').textContent=people.length;people.forEach((lm,i)=>drawPerson(lm,result,i));S.lastResult=result;S.lastSource=source}
+async function modeRun(m){if(!S.pose)return;await S.pose.setOptions({runningMode:m==='image'?'IMAGE':'VIDEO',numPoses:m==='image'?4:6,outputSegmentationMasks:true})}
+async function analyzeImage(){if(!S.ready||!S.imageLoaded)return;await modeRun('image');const r=S.pose.detect(img);drawFrame(img,r);setStatus(`完成：辨識 ${r.landmarks?.length||0} 人`, '33 點姿態＋人體遮罩')}
+async function analyzeVideo(){if(!S.ready||!video.videoWidth)return;await modeRun('video');const r=S.pose.detectForVideo(video,performance.now());drawFrame(video,r);S.frames++;const now=performance.now();if(now-S.lastT>1000){$('#mFps').textContent=Math.round(S.frames*1000/(now-S.lastT));S.frames=0;S.lastT=now}if(S.mode==='video'){if(video.duration){$('#seek').value=Math.round(video.currentTime/video.duration*1000);$('#time').textContent=`${fmt(video.currentTime)} / ${fmt(video.duration)}`}}}
+function loop(){if(S.mode==='camera'||(S.mode==='video'&&!video.paused&&!video.ended))analyzeVideo().catch(console.warn);S.raf=requestAnimationFrame(loop)}
+function stopMedia(){cancelAnimationFrame(S.raf);if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}video.pause();video.srcObject=null}
+async function setMode(m){stopMedia();S.mode=m;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));document.querySelectorAll('.modePanel').forEach(p=>p.classList.remove('active'));$('#panel-'+m).classList.add('active');ctx.clearRect(0,0,canvas.width,canvas.height);$('#mPeople').textContent='0';setStatus(S.ready?'等待輸入':'AI 模型載入中…',m==='camera'?'相機模式需要 HTTPS 或 localhost':'影像只在瀏覽器端處理')}
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
+$('#imageFile').onchange=e=>{const f=e.target.files?.[0];if(!f)return;img.onload=()=>{S.imageLoaded=true;$('#reanalyze').disabled=false;analyzeImage()};img.src=URL.createObjectURL(f)};$('#reanalyze').onclick=analyzeImage;
+$('#videoFile').onchange=e=>{const f=e.target.files?.[0];if(!f)return;stopMedia();video.src=URL.createObjectURL(f);video.onloadedmetadata=()=>{size(video.videoWidth,video.videoHeight);$('#play').disabled=$('#pause').disabled=$('#seek').disabled=false;$('#time').textContent=`00:00 / ${fmt(video.duration)}`;video.currentTime=0;video.onseeked=()=>analyzeVideo();analyzeVideo()}};$('#play').onclick=async()=>{await video.play();cancelAnimationFrame(S.raf);loop()};$('#pause').onclick=()=>video.pause();$('#seek').oninput=()=>{if(video.duration)video.currentTime=(+$('#seek').value/1000)*video.duration};
+$('#startCamera').onclick=async()=>{try{stopMedia();S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=S.stream;await video.play();$('#startCamera').disabled=true;$('#stopCamera').disabled=false;$('#startRec').disabled=false;setStatus('即時分析中','33 點姿態＋人體遮罩');cancelAnimationFrame(S.raf);loop()}catch(e){setStatus('相機開啟失敗',e.message)}};$('#stopCamera').onclick=()=>{stopMedia();$('#startCamera').disabled=false;$('#stopCamera').disabled=true;$('#startRec').disabled=true;setStatus('相機已關閉','')};
+$('#startRec').onclick=()=>{try{S.chunks=[];const st=canvas.captureStream(30);S.rec=new MediaRecorder(st,{mimeType:MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm'});S.rec.ondataavailable=e=>{if(e.data.size)S.chunks.push(e.data)};S.rec.onstop=()=>{const blob=new Blob(S.chunks,{type:'video/webm'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`embodied-space-v02-${Date.now()}.webm`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)};S.rec.start();$('#startRec').disabled=true;$('#stopRec').disabled=false;setStatus('REC 錄製中','分析 Overlay 會一起錄製')}catch(e){setStatus('錄製失敗',e.message)}};$('#stopRec').onclick=()=>{if(S.rec?.state==='recording')S.rec.stop();$('#startRec').disabled=false;$('#stopRec').disabled=true};
+const controls=[['wBase','oBase','base',v=>`${v.toFixed(2)}×身寬`],['wFace','oFace','face',v=>`${v.toFixed(2)}×`],['wHand','oHand','hand',v=>`${v.toFixed(2)}×`],['wFoot','oFoot','foot',v=>`${v.toFixed(2)}×`],['wLimb','oLimb','limb',v=>`${v.toFixed(2)}×`],['wTorso','oTorso','torso',v=>`${v.toFixed(2)}×`],['wFar','oFar','far',v=>`${v.toFixed(2)}×身寬`]];for(const[id,out,key,format]of controls){$('#'+id).oninput=e=>{C[key]=+e.target.value;$('#'+out).value=format(C[key]);if(S.mode==='image'&&S.imageLoaded)analyzeImage();else if(S.mode==='video'&&video.videoWidth&&video.paused)analyzeVideo()}}
+(async()=>{try{const vision=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm');S.pose=await PoseLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',delegate:'GPU'},runningMode:'IMAGE',numPoses:4,minPoseDetectionConfidence:.42,minPosePresenceConfidence:.42,minTrackingConfidence:.42,outputSegmentationMasks:true});S.ready=true;setStatus('AI 已就緒','請上傳照片、影片或開啟相機')}catch(e){console.error(e);setStatus('模型載入失敗',e.message)}})();
 </script>
-</body>
-</html>
+</body></html>
