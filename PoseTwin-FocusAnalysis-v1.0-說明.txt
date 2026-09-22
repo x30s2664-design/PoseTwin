@@ -1,0 +1,21 @@
+PoseTwin Focus Analysis v1.0
+
+檔案分離：
+1. EmbodiedSpace-v0.9-original.html
+   - 原始 v0.9，內容不修改。
+
+2. PoseTwin-FocusAnalysis-v1.0.html
+   - 以 v0.9 為底加入「點擊主體分析」。
+
+新增功能：
+- 點人分析：以 segmentation mask 判斷點到的人體，不只使用矩形框。
+- 主體聚焦：選中人物後可壓暗背景，保留主體原色。
+- 擷取主體 PNG：輸出透明背景人物 PNG。
+- 點球 / 物件：點 EfficientDet 偵測到的球或物件，反查最近 P 編號與左右手。
+- 球 / 手關係：顯示距離與「可能持球 / 接近手部 / 已離手」。
+- 持拍分析：沿用原本 HandLandmarker + 球拍線段推定；也支援 v0.9 人工球拍。
+- 原有 v0.9 的照片 / 影片 / 即時、PPS、人物鎖定、人工校正全部保留。
+
+注意：
+- EfficientDet 對球通常比球拍穩定；羽球拍仍保留原本「線段＋握持」推定與人工球拍校正。
+- 主體擷取依 MediaPipe segmentation 品質；遮擋嚴重時可用 v0.9 關節人工校正輔助。
