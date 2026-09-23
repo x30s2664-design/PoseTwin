@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="theme-color" content="#071018" />
-<title>PoseTwin Focus Analysis v1.2</title>
+<title>PoseTwin Target Analysis v1.4</title>
 <style>
 :root{color-scheme:dark;--bg:#061018;--panel:#0c1822;--line:#22394a;--text:#f1f7fb;--muted:#8ea7b6;--red:#ff5358;--yellow:#ffd84b;--blue:#39a8ff;--green:#37d978;--cyan:#66d6ff}
 *{box-sizing:border-box}body{margin:0;background:#061018;color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
@@ -23,7 +23,7 @@
 <body>
 <div class="app">
   <div class="top">
-    <div class="brand"><h1>PoseTwin <small style="font-size:.48em;color:#7bd5ff">Focus Analysis v1.2</small></h1><p>保留 EmbodiedSpace v0.9 · 點擊取出主體 · 球 / 持拍後續分析</p></div>
+    <div class="brand"><h1>PoseTwin <small style="font-size:.48em;color:#7bd5ff">Target Analysis v1.4</small></h1><p>保留 EmbodiedSpace v0.9 · 主體 Focus · 特定球 / 羽球 · 指定持拍分析</p></div>
     <div class="tabs"><button class="tab active" data-mode="image">照片</button><button class="tab" data-mode="video">影片</button><button class="tab" data-mode="camera">即時分析</button></div>
   </div>
   <div class="layout">
@@ -66,16 +66,22 @@
   <h2>點擊主體分析 <span class="focusBadge">Focus</span></h2>
   <div class="focusGrid">
     <button id="focusPerson" class="btn">👤 點人分析</button>
-    <button id="focusObject" class="btn">🏀 點球 / 球拍</button>
+    <button id="focusObject" class="btn">🤖 自動球 / 球拍</button>
+    <button id="pickBall" class="btn">🎯 指定球 / 羽球</button>
+    <button id="pickRacket" class="btn">🏸 指定球拍</button>
     <button id="extractSubject" class="btn" disabled>✂️ 擷取主體 PNG</button>
-    <button id="clearFocus" class="btn">取消焦點</button>
+    <button id="clearFocus" class="btn">清除焦點 / 指定</button>
+  </div>
+  <div class="ctrl" style="margin:10px 0 0">
+    <div class="ctrlHead"><label>指定球圈大小</label><output id="manualBallRadiusOut">18 px</output></div>
+    <input id="manualBallRadius" type="range" min="5" max="80" step="1" value="18">
   </div>
   <label class="focusToggle"><input id="dimFocus" type="checkbox" checked> 選中人物後壓暗背景，保留主體原色</label>
-  <label class="focusToggle"><input id="cleanFocus" type="checkbox" checked> Focus 時使用乾淨視圖（隱藏原空間色塊 / 骨架）</label>
-  <label class="focusToggle"><input id="focusBox" type="checkbox"> Focus 時顯示人物框</label>
+  <label class="focusToggle"><input id="cleanFocus" type="checkbox" checked> Focus 時隱藏骨架，但保留本體 / 近體 / 遠體 / 展延空間</label>
+  <label class="focusToggle"><input id="focusBox" type="checkbox"> 顯示人物選取框（預設關閉）</label>
   <div class="focusStatus" style="margin-top:10px">
-    <b id="focusHint">先按「點人分析」或「點球 / 球拍」</b><br>
-    <span id="focusDetail">點人物會依人體遮罩取出主體；點球 / 球拍只分析運動球與拍類物件。</span>
+    <b id="focusHint">可用自動辨識，也可直接指定特定目標</b><br>
+    <span id="focusDetail">指定球 / 羽球：點它的中心。指定球拍：先點握把，再點拍頭；不依賴模型類別。</span>
   </div>
   <div class="focusGrid" style="margin-top:10px">
     <div class="focusMetric"><span class="small">焦點</span><strong id="fTarget">—</strong></div>
@@ -83,7 +89,7 @@
     <div class="focusMetric"><span class="small">球 / 手關係</span><strong id="fBall">—</strong></div>
     <div class="focusMetric"><span class="small">持拍</span><strong id="fRacket">—</strong></div>
   </div>
-  <div class="small" style="margin-top:9px">操作：點人 → 取出主體 → 乾淨 Focus 顯示球 / 持拍；或直接點球 / 球拍 → 反查最近 P 編號與左右手。需要原本 PPS / 骨架時，把「乾淨視圖」取消勾選。</div>
+  <div class="small" style="margin-top:9px">自動模式會先用全圖偵測；點不到時會對點擊區域做局部放大再辨識。羽球、很小的球或模型不認得的球拍，請用「指定」模式。指定結果會優先於自動結果。Focus 時近體空間會持續顯示；「乾淨視圖」只隱藏骨架，不再隱藏空間色塊。</div>
 </div>
 <div class="card section"><h2>標記 / 校正 <span style="font-size:12px;color:#7bd5ff">v0.9</span></h2>
 <div class="ctrl"><div class="ctrlHead"><label>分析方式</label><output id="oEditMode">自動</output></div><select id="editMode" class="btn" style="width:100%"><option value="auto">🤖 自動分析</option><option value="hybrid">🔧 AI＋人工校正</option><option value="manual">✋ 人工標記</option></select></div>
@@ -92,13 +98,13 @@
 <div class="small" style="margin-top:8px">人工修正綁定目前 P 編號，並即時重算空間。</div></div><div class="card section"><h2>分析狀態</h2><div class="metrics"><div class="metric"><b id="mPeople">0</b><span>辨識人物</span></div><div class="metric"><b id="mFps">0</b><span>分析 FPS</span></div><div class="metric"><b id="mMask">—</b><span>人體遮罩</span></div><div class="metric"><b id="mHeld">—</b><span>持物偵測</span></div><div class="metric"><b id="mHands">—</b><span>手部 21 點</span></div><div class="metric"><b id="mFrame">—</b><span>影格尺寸</span></div></div></div>
     </div>
   </div>
-  <div class="footer">EmbodiedSpace v0.9 preserved · Focus Analysis v1.2 · Clean focus view · Browser-only</div>
+  <div class="footer">EmbodiedSpace v0.9 preserved · Target Analysis v1.4 · PPS preserved · No selection box by default · Browser-only</div>
 </div>
 <video id="video" playsinline muted style="display:none"></video><img id="img" style="display:none" alt="">
 <script type="module">
 import { FilesetResolver, PoseLandmarker, HandLandmarker, ObjectDetector } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/+esm";
 const $=s=>document.querySelector(s), canvas=$('#stage'),ctx=canvas.getContext('2d',{alpha:true}),video=$('#video'),img=$('#img');
-const S={mode:'image',pose:null,hand:null,obj:null,ready:false,handReady:false,objectReady:false,stream:null,raf:0,imageLoaded:false,rec:null,chunks:[],lastT:performance.now(),frames:0,lastResult:null,lastSource:null,objects:[],hands:[],lastObjectAt:0,lastHandAt:0,poseRunMode:null,handRunMode:null,objRunMode:null,raw:null,tracks:[],nextTrackId:1,personInfos:[],selectionMode:'all',selectedTrackId:null,lockSelection:false,editMode:'auto',manualByTrack:{},manualAction:null,manualHistory:[],dragJoint:null,focusPick:null,focusType:null,focusTrackId:null,focusObject:null,dimFocus:true,cleanFocus:true,focusBox:false};
+const S={mode:'image',pose:null,hand:null,obj:null,ready:false,handReady:false,objectReady:false,stream:null,raf:0,imageLoaded:false,rec:null,chunks:[],lastT:performance.now(),frames:0,lastResult:null,lastSource:null,objects:[],hands:[],lastObjectAt:0,lastHandAt:0,poseRunMode:null,handRunMode:null,objRunMode:null,raw:null,tracks:[],nextTrackId:1,personInfos:[],selectionMode:'all',selectedTrackId:null,lockSelection:false,editMode:'auto',manualByTrack:{},manualAction:null,manualHistory:[],dragJoint:null,focusPick:null,focusType:null,focusTrackId:null,focusObject:null,dimFocus:true,cleanFocus:true,focusBox:false,targetAction:null,specificBall:null,specificRacket:null};
 const C={base:.18,face:1.4,hand:1.5,foot:1.2,limb:.8,torso:.6,far:.45,extLen:1.00,extWidth:.28};
 const OBJECT_MODEL_URL='https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite';
 const HAND_MODEL_URL='https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
@@ -177,7 +183,7 @@ function nearestHandToPoint(pt){
   return best;
 }
 function sportsBalls(){
-  return(S.objects||[]).map(objectInfo).filter(o=>o&&/sports ball|ball/.test(o.label));
+  return(S.objects||[]).map(objectInfo).filter(o=>validFocusObject(o)&&o.kind==='ball');
 }
 function ballAnalysisForPerson(person){
   if(!person)return null;
@@ -216,16 +222,124 @@ function setFocusPick(kind){
   else if(kind==='object'){setFocusText('請點照片中的球或球拍','只接受運動球與拍類偵測；不會再抓背景或一般物件。')}
 }
 function setFocusText(a,b=''){if($('#focusHint'))$('#focusHint').textContent=a;if($('#focusDetail'))$('#focusDetail').textContent=b}
+function clearTargetButtons(){
+  $('#pickBall')?.classList.remove('focusActive');
+  $('#pickRacket')?.classList.remove('focusActive');
+}
+function targetStateFromNear(near){
+  if(!near)return null;
+  return near.distance<near.rw*.32?'可能持有':near.distance<near.rw*.72?'接近手部':'已離手 / 遠離手部';
+}
+function setTargetAction(kind){
+  if(S.mode!=='image'){
+    setFocusText('指定模式目前先支援照片','影片 / 即時追蹤需要下一階段加入時間追蹤器。');
+    return;
+  }
+  S.focusPick=null;
+  $('#focusPerson')?.classList.remove('focusActive');
+  $('#focusObject')?.classList.remove('focusActive');
+  clearTargetButtons();
+  if(kind==='ball'){
+    S.targetAction={kind:'ball'};
+    $('#pickBall')?.classList.add('focusActive');
+    setFocusText('請點「特定球 / 羽球」中心','你點到的這一顆會成為指定目標，不需要 AI 先認出它。');
+  }else{
+    S.targetAction={kind:'racket',start:null};
+    $('#pickRacket')?.classList.add('focusActive');
+    setFocusText('指定球拍：先點握把','第 2 點再點拍頭 / 拍框最遠端。');
+  }
+}
+function applySpecificBall(pt){
+  const near=nearestHandToPoint(pt);
+  const radius=Number($('#manualBallRadius')?.value||18);
+  S.specificBall={
+    center:{x:pt.x,y:pt.y},radius,
+    trackId:near?.person?.trackId||null,side:near?.side||null,
+    distance:near?.distance??null,rw:near?.rw??null,source:'指定'
+  };
+  S.focusObject=null;S.focusType='specificBall';S.targetAction=null;clearTargetButtons();
+  if(near){
+    S.selectedTrackId=near.person.trackId;S.selectionMode='single';$('#selectMode').value='single';
+    refreshSelectionUI();renderPersonList();
+  }
+  setFocusText('已指定特定球 / 羽球',
+    near?`關聯 P${near.person.trackId} ${near.side==='left'?'左手':'右手'}，距離 ${Math.round(near.distance)} px。`:'已標記位置，但目前無法關聯人物手部。');
+  redrawLast();
+}
+function applySpecificRacketPoint(pt){
+  if(!S.targetAction||S.targetAction.kind!=='racket')return;
+  if(!S.targetAction.start){
+    S.targetAction.start={x:pt.x,y:pt.y};
+    setFocusText('握把已指定，請點拍頭','第二點請放在拍框 / 拍頭最遠端。');
+    return;
+  }
+  const start=S.targetAction.start,end={x:pt.x,y:pt.y},near=nearestHandToPoint(start);
+  const angle=Math.atan2(end.y-start.y,end.x-start.x)*180/Math.PI;
+  const length=Math.hypot(end.x-start.x,end.y-start.y);
+  S.specificRacket={
+    start,end,trackId:near?.person?.trackId||null,side:near?.side||null,
+    distance:near?.distance??null,angle,length,source:'指定'
+  };
+  S.focusObject=null;S.focusType='specificRacket';S.targetAction=null;clearTargetButtons();
+  if(near){
+    S.selectedTrackId=near.person.trackId;S.selectionMode='single';$('#selectMode').value='single';
+    refreshSelectionUI();renderPersonList();
+  }
+  setFocusText('已指定球拍',
+    near?`關聯 P${near.person.trackId} ${near.side==='left'?'左手':'右手'}；方向 ${Math.round(angle)}°。`:`球拍方向 ${Math.round(angle)}°，目前無法關聯手部。`);
+  redrawLast();
+}
+function specificBallForPerson(person){
+  const b=S.specificBall;
+  return b&&person&&b.trackId===person.trackId?b:null;
+}
+function specificRacketForPerson(person){
+  const r=S.specificRacket;
+  return r&&person&&r.trackId===person.trackId?r:null;
+}
+async function localDetectAt(x,y){
+  if(S.mode!=='image'||!S.obj||!S.lastSource)return null;
+  const side=Math.max(120,Math.min(Math.min(canvas.width,canvas.height)*.34,520));
+  const sx=Math.max(0,Math.min(canvas.width-side,x-side/2));
+  const sy=Math.max(0,Math.min(canvas.height-side,y-side/2));
+  const sw=Math.min(side,canvas.width-sx),sh=Math.min(side,canvas.height-sy);
+  const c=document.createElement('canvas');c.width=640;c.height=640;
+  const cx=c.getContext('2d');
+  try{cx.drawImage(S.lastSource,sx,sy,sw,sh,0,0,c.width,c.height)}catch{return null}
+  let res;
+  try{res=S.obj.detect(c)}catch(e){console.warn('local object detect',e);return null}
+  const mapped=[];
+  for(const det of res?.detections||[]){
+    const b=det?.boundingBox;if(!b)continue;
+    const td={
+      ...det,
+      boundingBox:{
+        originX:sx+(b.originX/c.width)*sw,
+        originY:sy+(b.originY/c.height)*sh,
+        width:(b.width/c.width)*sw,
+        height:(b.height/c.height)*sh
+      }
+    };
+    const o=objectInfo(td);
+    if(validFocusObject(o))mapped.push(o);
+  }
+  if(!mapped.length)return null;
+  mapped.sort((a,b)=>Math.hypot(a.center.x-x,a.center.y-y)-Math.hypot(b.center.x-x,b.center.y-y));
+  const best=mapped[0],gate=side*.26;
+  return Math.hypot(best.center.x-x,best.center.y-y)<=gate?best:null;
+}
+
 function clearFocus(){
-  S.focusPick=null;S.focusType=null;S.focusTrackId=null;S.focusObject=null;
-  $('#focusPerson')?.classList.remove('focusActive');$('#focusObject')?.classList.remove('focusActive');
+  S.focusPick=null;S.focusType=null;S.focusTrackId=null;S.focusObject=null;S.targetAction=null;
+  S.specificBall=null;S.specificRacket=null;
+  $('#focusPerson')?.classList.remove('focusActive');$('#focusObject')?.classList.remove('focusActive');clearTargetButtons();
   $('#extractSubject').disabled=true;
-  setFocusText('焦點已清除','可重新點人物或物件。');
+  setFocusText('焦點與指定目標已清除','可重新點人物、自動辨識，或指定特定球 / 球拍。');
   updateFocusPanel();redrawLast();
 }
 function applyPersonFocus(person){
   if(!person)return;
-  S.focusPick=null;S.focusType='person';S.focusTrackId=person.trackId;S.focusObject=null;
+  S.focusPick=null;S.focusType='person';S.focusTrackId=person.trackId;S.focusObject=null;S.targetAction=null;clearTargetButtons();
   S.selectedTrackId=person.trackId;S.selectionMode='single';$('#selectMode').value='single';
   $('#focusPerson')?.classList.remove('focusActive');$('#focusObject')?.classList.remove('focusActive');
   $('#extractSubject').disabled=false;
@@ -233,7 +347,7 @@ function applyPersonFocus(person){
 }
 function applyObjectFocus(obj){
   if(!obj)return;
-  S.focusPick=null;S.focusType='object';S.focusObject=obj;
+  S.focusPick=null;S.focusType='object';S.focusObject=obj;S.targetAction=null;clearTargetButtons();
   $('#focusPerson')?.classList.remove('focusActive');$('#focusObject')?.classList.remove('focusActive');
   $('#extractSubject').disabled=true;
   const near=nearestHandToPoint(obj.center);
@@ -260,14 +374,21 @@ function syncFocusedObject(){
 function drawFocusRelations(person){
   if(!person)return;
   const lm=correctedLm(person),b=bounds(lm)||person.b,rw=refWidth(lm,b);
-  const ba=ballAnalysisForPerson(person);
-  const ra=racketAnalysisForPerson(person);
-  const mr=manualRacketForPerson(person);
+  const sb=specificBallForPerson(person),ba=sb?null:ballAnalysisForPerson(person);
+  const sr=specificRacketForPerson(person),ra=sr?null:racketAnalysisForPerson(person);
+  const mr=sr?null:manualRacketForPerson(person);
   ctx.save();
   ctx.lineWidth=Math.max(3,canvas.width/520);
   ctx.font=`800 ${Math.max(14,canvas.width/78)}px system-ui`;
 
-  if(ba){
+  if(sb){
+    const c=sb.center,rad=sb.radius||18,hand=sb.side?handCenter(lm,sb.side):null;
+    ctx.strokeStyle='#ffb454';ctx.fillStyle='#ffd39a';
+    ctx.beginPath();ctx.arc(c.x,c.y,rad,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(c.x,c.y,Math.max(3,canvas.width/300),0,Math.PI*2);ctx.fill();
+    if(hand){ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(hand.x,hand.y);ctx.lineTo(c.x,c.y);ctx.stroke();ctx.setLineDash([])}
+    ctx.fillText(`指定球 / 羽球 · ${targetStateFromNear(nearestHandToPoint(c))||'已指定'}`,c.x+rad+8,Math.max(18,c.y-rad-4));
+  }else if(ba){
     const c=ba.ball.center,bb=ba.ball.box;
     const rx=Math.max(10,bb.width*.55),ry=Math.max(10,bb.height*.55);
     ctx.strokeStyle='#ffb454';ctx.fillStyle='#ffd39a';
@@ -278,7 +399,7 @@ function drawFocusRelations(person){
     if(hand){
       ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(hand.x,hand.y);ctx.lineTo(c.x,c.y);ctx.stroke();ctx.setLineDash([]);
     }
-    ctx.fillText(`球 · ${ba.state}`,c.x+rx+8,Math.max(18,c.y-ry-4));
+    ctx.fillText(`自動球 · ${ba.state}`,c.x+rx+8,Math.max(18,c.y-ry-4));
   }
 
   const drawRacket=(start,end,label)=>{
@@ -289,7 +410,9 @@ function drawFocusRelations(person){
     ctx.fillText(label,end.x+8,Math.max(18,end.y-8));
   };
 
-  if(mr){
+  if(sr){
+    drawRacket(sr.start,sr.end,`${sr.side==='left'?'左':'右'}手 · 指定球拍`);
+  }else if(mr){
     drawRacket(mr.start,mr.end,`${mr.side==='left'?'左':'右'}手 · 人工球拍`);
   }else if(ra){
     const start=ra.hand||handCenter(lm,ra.side);
@@ -309,6 +432,39 @@ function drawFocusRelations(person){
   ctx.restore();
 }
 
+
+function drawSpecificTargets(){
+  ctx.save();
+  ctx.lineWidth=Math.max(3,canvas.width/520);
+  ctx.font=`800 ${Math.max(14,canvas.width/78)}px system-ui`;
+  const b=S.specificBall;
+  if(b){
+    ctx.strokeStyle='#ffb454';ctx.fillStyle='#ffd39a';
+    ctx.beginPath();ctx.arc(b.center.x,b.center.y,b.radius,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.arc(b.center.x,b.center.y,Math.max(3,canvas.width/320),0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(b.center.x-b.radius*.55,b.center.y);ctx.lineTo(b.center.x+b.radius*.55,b.center.y);
+    ctx.moveTo(b.center.x,b.center.y-b.radius*.55);ctx.lineTo(b.center.x,b.center.y+b.radius*.55);ctx.stroke();
+    const near=nearestHandToPoint(b.center);
+    if(near&&near.person.trackId===b.trackId){
+      ctx.setLineDash([7,6]);ctx.beginPath();ctx.moveTo(near.hand.x,near.hand.y);ctx.lineTo(b.center.x,b.center.y);ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.fillText('指定球 / 羽球',b.center.x+b.radius+8,Math.max(18,b.center.y-b.radius-5));
+  }
+  const r=S.specificRacket;
+  if(r){
+    ctx.strokeStyle='#45f0a0';ctx.fillStyle='#7dffb1';
+    ctx.setLineDash([10,6]);ctx.beginPath();ctx.moveTo(r.start.x,r.start.y);ctx.lineTo(r.end.x,r.end.y);ctx.stroke();ctx.setLineDash([]);
+    for(const p of [r.start,r.end]){ctx.beginPath();ctx.arc(p.x,p.y,Math.max(5,canvas.width/230),0,Math.PI*2);ctx.fill()}
+    ctx.fillText(`指定球拍 ${Math.round(r.angle)}°`,r.end.x+9,Math.max(18,r.end.y-9));
+  }
+  if(S.targetAction?.kind==='racket'&&S.targetAction.start){
+    const a=S.targetAction.start;
+    ctx.strokeStyle='#45f0a0';ctx.fillStyle='#7dffb1';
+    ctx.beginPath();ctx.arc(a.x,a.y,Math.max(6,canvas.width/220),0,Math.PI*2);ctx.fill();
+    ctx.fillText('握把',a.x+10,Math.max(18,a.y-10));
+  }
+  ctx.restore();
+}
 function drawFocusedObject(){
   if(S.focusType!=='object'||!S.focusObject)return;
   const o=S.focusObject,b=o.box;
@@ -346,16 +502,33 @@ function updateFocusPanel(){
   if(S.focusType==='person'){
     const p=focusedPerson();if(!p){target.textContent=`P${S.focusTrackId||'?'}`;return}
     target.textContent=`P${p.trackId}`;subject.textContent='已取出主體';
-    const ba=ballAnalysisForPerson(p);ball.textContent=ba?`${ba.side==='left'?'左手':'右手'} ${Math.round(ba.distance)}px · ${ba.state}`:'未偵測到球';
-    const ra=racketAnalysisForPerson(p),mr=manualRacketForPerson(p);
-    if(mr){const ang=Math.atan2(mr.end.y-mr.start.y,mr.end.x-mr.start.x)*180/Math.PI;racket.textContent=`${mr.side==='left'?'左手':'右手'} 人工球拍 · ${Math.round(ang)}°`}
-    else if(ra){racket.textContent=`${ra.side==='left'?'左手':'右手'} ${ra.label}${ra.inferred?'（推定）':''}`}
-    else racket.textContent='未判定持拍';
+    const sb=specificBallForPerson(p),ba=sb?null:ballAnalysisForPerson(p);
+    if(sb){
+      const near=nearestHandToPoint(sb.center);
+      ball.textContent=`指定 · ${sb.side==='left'?'左手':sb.side==='right'?'右手':'未關聯'} ${sb.distance!=null?Math.round(sb.distance)+'px · ':''}${targetStateFromNear(near)||'已指定'}`;
+    }else ball.textContent=ba?`自動 · ${ba.side==='left'?'左手':'右手'} ${Math.round(ba.distance)}px · ${ba.state}`:'自動未偵測到球';
+    const sr=specificRacketForPerson(p),ra=sr?null:racketAnalysisForPerson(p),mr=sr?null:manualRacketForPerson(p);
+    if(sr)racket.textContent=`指定 · ${sr.side==='left'?'左手':sr.side==='right'?'右手':'未關聯'} · ${Math.round(sr.angle)}°`;
+    else if(mr){const ang=Math.atan2(mr.end.y-mr.start.y,mr.end.x-mr.start.x)*180/Math.PI;racket.textContent=`人工校正 · ${mr.side==='left'?'左手':'右手'} · ${Math.round(ang)}°`}
+    else if(ra){racket.textContent=`自動推定 · ${ra.side==='left'?'左手':'右手'} ${ra.label}${ra.inferred?'（推定）':''}`}
+    else racket.textContent='自動未判定持拍';
   }else if(S.focusType==='object'&&S.focusObject){
     const o=S.focusObject,near=nearestHandToPoint(o.center);target.textContent=o.kind==='ball'?'球':'球拍';
     subject.textContent=near?`P${near.person.trackId} ${near.side==='left'?'左手':'右手'}`:'未關聯';
     ball.textContent=o.kind==='ball'&&near?`${Math.round(near.distance)}px · ${near.distance<near.rw*.32?'可能持球':near.distance<near.rw*.72?'接近手部':'已離手'}`:'—';
     racket.textContent=o.kind==='racket'&&near?`${near.side==='left'?'左手':'右手'} 持拍候選`:'—';
+  }else if(S.focusType==='specificBall'&&S.specificBall){
+    const b=S.specificBall,near=nearestHandToPoint(b.center);
+    target.textContent='指定球 / 羽球';
+    subject.textContent=near?`P${near.person.trackId} ${near.side==='left'?'左手':'右手'}`:'未關聯';
+    ball.textContent=near?`${Math.round(near.distance)}px · ${targetStateFromNear(near)}`:'已指定位置';
+    racket.textContent='—';
+  }else if(S.focusType==='specificRacket'&&S.specificRacket){
+    const r=S.specificRacket;
+    target.textContent='指定球拍';
+    subject.textContent=r.trackId?`P${r.trackId} ${r.side==='left'?'左手':r.side==='right'?'右手':'未關聯'}`:'未關聯';
+    ball.textContent='—';
+    racket.textContent=`${Math.round(r.length)}px · ${Math.round(r.angle)}°`;
   }
 }
 function extractFocusedSubject(){
@@ -407,7 +580,7 @@ function detectorHeldBySide(lm,b){const rw=refWidth(lm,b),pad=Math.max(14,rw*.11
 function heldObjectsForPerson(lm,b){const mode=$('#heldMode')?.value||'auto';if(mode==='off')return[];const rw=refWidth(lm,b);if(mode==='left'||mode==='right'){const h=handCenter(lm,mode);return h?[{side:mode,det:null,box:null,label:'手動指定持物',kind:'tool',score:1,rank:99,hand:h,manual:true,inferred:false}]:[]}const by=detectorHeldBySide(lm,b),features={left:handFeatures(lm,'left',rw),right:handFeatures(lm,'right',rw)},lines={left:racketLineCandidate(lm,'left',rw),right:racketLineCandidate(lm,'right',rw)};
   // Generic detector often has no badminton-racket or shuttlecock class. When it misses,
   // infer a racket only if a grip-like hand coincides with a long thin line leaving the wrist.
-  for(const side of ['left','right']){if(by[side])continue;const f=features[side],line=lines[side];if(f&&line&&line.score>.24&&(f.grip>.10||f.pinch>.10)){by[side]={side,box:null,label:'球拍推定',kind:'racket',score:line.score,rank:2+line.score,hand:f.center,manual:false,inferred:true,line}}}
+  for(const side of ['left','right']){if(by[side])continue;const f=features[side],line=lines[side];if(f&&line&&line.score>.34&&(f.grip>.22||f.pinch>.22)){by[side]={side,box:null,label:'球拍推定',kind:'racket',score:line.score,rank:2+line.score,hand:f.center,manual:false,inferred:true,line}}}
   const racketSides=['left','right'].filter(s=>by[s]?.kind==='racket');
   // The non-racket hand may be pinching/holding a shuttlecock or small ball. This is a
   // posture-based candidate, explicitly labelled as inferred rather than detected.
@@ -417,37 +590,102 @@ function heldObjectsForPerson(lm,b){const mode=$('#heldMode')?.value||'auto';if(
 function extensionSpaceMask(lm,b,rw,held){if(!held)return null;const side=held.side,wrist=point(lm,side==='left'?15:16),elbow=point(lm,side==='left'?13:14);if(!wrist)return null;if(held.kind==='ball'||held.kind==='shuttle'){const c=maskCanvas(),m=c.getContext('2d');m.fillStyle='#fff';m.beginPath();m.arc(held.hand?.x||wrist.x,held.hand?.y||wrist.y,Math.max(10,rw*C.extWidth*.75),0,Math.PI*2);m.fill();return c}let vx=0,vy=0,box=held.box;if(held.line){vx=held.line.end.x-wrist.x;vy=held.line.end.y-wrist.y}else if(box){const corners=[{x:box.originX,y:box.originY},{x:box.originX+box.width,y:box.originY},{x:box.originX+box.width,y:box.originY+box.height},{x:box.originX,y:box.originY+box.height}],cx=box.originX+box.width/2,cy=box.originY+box.height/2;let far=corners[0],fd=-1;for(const p of corners){const d=Math.hypot(p.x-wrist.x,p.y-wrist.y);if(d>fd){fd=d;far=p}}const distal={x:far.x*.72+cx*.28,y:far.y*.72+cy*.28};vx=distal.x-wrist.x;vy=distal.y-wrist.y}let mag=Math.hypot(vx,vy);if((!box&&!held.line||mag<6)&&elbow){vx=wrist.x-elbow.x;vy=wrist.y-elbow.y;mag=Math.hypot(vx,vy)}if(mag<6)return null;vx/=mag;vy/=mag;const detectedLen=box?Math.hypot(box.width,box.height):held.line?.length||rw;const length=Math.max(18,detectedLen*C.extLen),end={x:wrist.x+vx*length,y:wrist.y+vy*length},objectWidth=box?Math.min(box.width,box.height)*.22:0,wid=Math.max(10,rw*C.extWidth,objectWidth);return extensionCapsuleMask(wrist,end,wid)}
 function drawHeldBox(held){if(!held)return;ctx.save();const compact=held.kind==='ball'||held.kind==='shuttle';ctx.strokeStyle=compact?'rgba(255,170,90,.98)':'rgba(75,240,150,.98)';ctx.lineWidth=Math.max(2,canvas.width/650);ctx.font=`700 ${Math.max(12,canvas.width/90)}px system-ui`;ctx.fillStyle=compact?'rgba(255,195,100,.98)':'rgba(100,255,170,.98)';if(held.box){const b=held.box;ctx.setLineDash([8,6]);ctx.strokeRect(b.originX,b.originY,b.width,b.height);ctx.setLineDash([]);ctx.fillText(`${held.side==='left'?'左手':'右手'} ${held.label}`,Math.max(6,b.originX),Math.max(16,b.originY-6))}else if(held.hand){ctx.beginPath();ctx.arc(held.hand.x,held.hand.y,Math.max(8,canvas.width/100),0,Math.PI*2);ctx.stroke();const tag=held.inferred?'（推定）':held.manual?'（手動）':'';ctx.fillText(`${held.side==='left'?'左手':'右手'} ${held.label}${tag}`,held.hand.x+10,held.hand.y-10)}if(held.line){ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(held.hand.x,held.hand.y);ctx.lineTo(held.line.end.x,held.line.end.y);ctx.stroke();ctx.setLineDash([])}ctx.restore()}
 function drawSkeleton(lm){ctx.save();ctx.strokeStyle='rgba(255,79,85,.95)';ctx.fillStyle='#ff4f55';ctx.lineWidth=Math.max(2,canvas.width/600);ctx.lineCap='round';for(const c of PoseLandmarker.POSE_CONNECTIONS){if(c.start<=10&&c.end<=10)continue;const a=point(lm,c.start),b=point(lm,c.end);if(a&&b){ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}}for(let i=0;i<33;i++){if(!visible(lm,i,.22))continue;const p=point(lm,i);ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2.5,canvas.width/400),0,Math.PI*2);ctx.fill()}ctx.restore()}
-function drawPerson(person,result){let {index,trackId,b}=person;const lm=correctedLm(person);b=bounds(lm)||b;if(!b)return[];const seg=segmentationMask(result,index),hasManual=Object.keys(manualData(trackId,false)?.joints||{}).length>0,body=hasManual?fallbackBodyMask(lm,b):(seg||fallbackBodyMask(lm,b));$('#mMask').textContent=seg?'SEG':'POSE';const P=weightedPpsMask(lm,body,b),ppsRing=subtract(P.mask,body),farOuter=dilate(P.mask,Math.max(8,P.rw*C.far)),farRing=subtract(farOuter,P.mask),helds=heldObjectsForPerson(lm,b);colorMask(farRing,'rgba(28,116,210,.20)');colorMask(ppsRing,'rgba(255,214,55,.34)');for(const held of helds){const extMask=extensionSpaceMask(lm,b,P.rw,held),extRing=extMask?subtract(extMask,P.mask):null;if(extRing)colorMask(extRing,held.kind==='shuttle'||held.kind==='ball'?'rgba(255,170,70,.34)':'rgba(55,217,120,.42)')}drawManualObjects(person,P);colorMask(body,'rgba(255,70,75,.46)');drawSkeleton(lm);drawManualJointMarks(person,lm);helds.forEach(drawHeldBox);const h=point(lm,0)||{x:b.cx,y:b.minY};ctx.save();ctx.font=`700 ${Math.max(14,canvas.width/70)}px system-ui`;ctx.fillStyle='#fff';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=4;ctx.strokeText(`P${trackId}`,h.x+10,h.y-12);ctx.fillText(`P${trackId}`,h.x+10,h.y-12);ctx.restore();return helds}
-function drawFrame(source,result){size(source.videoWidth||source.naturalWidth,source.videoHeight||source.naturalHeight);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0,canvas.width,canvas.height);prepareRawPixels(source);const peopleRaw=result?.landmarks||[];const people=assignTrackIds(peopleRaw);S.personInfos=people;$('#mPeople').textContent=people.length;if(S.selectionMode==='single'){const exists=people.some(p=>p.trackId===S.selectedTrackId);if(!exists&&!S.lockSelection&&people.length)S.selectedTrackId=people[0].trackId}if(S.focusType==='person'){const fp=people.some(p=>p.trackId===S.focusTrackId);if(!fp&&!S.lockSelection){S.focusType=null;S.focusTrackId=null;$('#extractSubject').disabled=true}}syncFocusedObject();drawFocusedSubject(source,result);const activePeople=S.focusType==='person'&&S.focusTrackId?people.filter(p=>p.trackId===S.focusTrackId):(S.selectionMode==='all'?people:people.filter(p=>p.trackId===S.selectedTrackId));const helds=[];
-if(S.focusType==='person'&&S.cleanFocus){
-  const p=people.find(x=>x.trackId===S.focusTrackId);
-  if(p){
-    drawFocusRelations(p);
-    if(S.focusBox)drawSelectionBox(p,true);
+
+function drawPersonSpaceOnly(person,result){
+  let {index,trackId,b}=person;
+  const lm=correctedLm(person);b=bounds(lm)||b;if(!b)return[];
+  const seg=segmentationMask(result,index),
+    hasManual=Object.keys(manualData(trackId,false)?.joints||{}).length>0,
+    body=hasManual?fallbackBodyMask(lm,b):(seg||fallbackBodyMask(lm,b));
+  $('#mMask').textContent=seg?'SEG':'POSE';
+  const P=weightedPpsMask(lm,body,b),
+    ppsRing=subtract(P.mask,body),
+    farOuter=dilate(P.mask,Math.max(8,P.rw*C.far)),
+    farRing=subtract(farOuter,P.mask),
+    helds=heldObjectsForPerson(lm,b);
+
+  // 保留原本 EmbodiedSpace 空間模型，但不畫骨架與人物選取框。
+  colorMask(farRing,'rgba(28,116,210,.20)');
+  colorMask(ppsRing,'rgba(255,214,55,.34)');
+  for(const held of helds){
+    const extMask=extensionSpaceMask(lm,b,P.rw,held),
+      extRing=extMask?subtract(extMask,P.mask):null;
+    if(extRing)colorMask(extRing,
+      held.kind==='shuttle'||held.kind==='ball'
+        ?'rgba(255,170,70,.34)'
+        :'rgba(55,217,120,.42)');
   }
+  drawManualObjects(person,P);
+  colorMask(body,'rgba(255,70,75,.46)');
+  drawManualJointMarks(person,lm);
+  helds.forEach(drawHeldBox);
+
+  const h=point(lm,0)||{x:b.cx,y:b.minY};
+  ctx.save();
+  ctx.font=`700 ${Math.max(14,canvas.width/70)}px system-ui`;
+  ctx.fillStyle='#fff';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=4;
+  ctx.strokeText(`P${trackId}`,h.x+10,h.y-12);
+  ctx.fillText(`P${trackId}`,h.x+10,h.y-12);
+  ctx.restore();
+  return helds;
+}
+function drawPerson(person,result){let {index,trackId,b}=person;const lm=correctedLm(person);b=bounds(lm)||b;if(!b)return[];const seg=segmentationMask(result,index),hasManual=Object.keys(manualData(trackId,false)?.joints||{}).length>0,body=hasManual?fallbackBodyMask(lm,b):(seg||fallbackBodyMask(lm,b));$('#mMask').textContent=seg?'SEG':'POSE';const P=weightedPpsMask(lm,body,b),ppsRing=subtract(P.mask,body),farOuter=dilate(P.mask,Math.max(8,P.rw*C.far)),farRing=subtract(farOuter,P.mask),helds=heldObjectsForPerson(lm,b);colorMask(farRing,'rgba(28,116,210,.20)');colorMask(ppsRing,'rgba(255,214,55,.34)');for(const held of helds){const extMask=extensionSpaceMask(lm,b,P.rw,held),extRing=extMask?subtract(extMask,P.mask):null;if(extRing)colorMask(extRing,held.kind==='shuttle'||held.kind==='ball'?'rgba(255,170,70,.34)':'rgba(55,217,120,.42)')}drawManualObjects(person,P);colorMask(body,'rgba(255,70,75,.46)');drawSkeleton(lm);drawManualJointMarks(person,lm);helds.forEach(drawHeldBox);const h=point(lm,0)||{x:b.cx,y:b.minY};ctx.save();ctx.font=`700 ${Math.max(14,canvas.width/70)}px system-ui`;ctx.fillStyle='#fff';ctx.strokeStyle='rgba(0,0,0,.65)';ctx.lineWidth=4;ctx.strokeText(`P${trackId}`,h.x+10,h.y-12);ctx.fillText(`P${trackId}`,h.x+10,h.y-12);ctx.restore();return helds}
+function drawFrame(source,result){size(source.videoWidth||source.naturalWidth,source.videoHeight||source.naturalHeight);ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(source,0,0,canvas.width,canvas.height);prepareRawPixels(source);const peopleRaw=result?.landmarks||[];const people=assignTrackIds(peopleRaw);S.personInfos=people;$('#mPeople').textContent=people.length;if(S.selectionMode==='single'){const exists=people.some(p=>p.trackId===S.selectedTrackId);if(!exists&&!S.lockSelection&&people.length)S.selectedTrackId=people[0].trackId}if(S.focusType==='person'){const fp=people.some(p=>p.trackId===S.focusTrackId);if(!fp&&!S.lockSelection){S.focusType=null;S.focusTrackId=null;$('#extractSubject').disabled=true}}syncFocusedObject();drawFocusedSubject(source,result);const activePeople=S.focusType==='person'&&S.focusTrackId
+  ?people.filter(p=>p.trackId===S.focusTrackId)
+  :(S.selectionMode==='all'?people:people.filter(p=>p.trackId===S.selectedTrackId));
+const helds=[];
+
+const hasTargetFocus=['person','specificBall','specificRacket','object'].includes(S.focusType);
+const focusTrackId=S.focusType==='person'?S.focusTrackId:S.selectedTrackId;
+const focusPerson=people.find(p=>p.trackId===focusTrackId);
+
+// Target / Focus 模式：空間模型維持顯示。
+// cleanFocus 只控制骨架，不再把 PPS / Far / Extension 拿掉。
+if(hasTargetFocus&&focusPerson){
+  if(S.cleanFocus){
+    helds.push(...drawPersonSpaceOnly(focusPerson,result));
+  }else{
+    helds.push(...drawPerson(focusPerson,result));
+  }
+  drawFocusRelations(focusPerson);
+  if(S.focusBox)drawSelectionBox(focusPerson,true);
 }else{
   activePeople.forEach(p=>helds.push(...drawPerson(p,result)));
-  if(S.focusType==='person'){
-    const p=people.find(x=>x.trackId===S.focusTrackId);
-    if(p&&S.focusBox)drawSelectionBox(p,true);
-  }else if(S.focusType!=='object'){
-    people.forEach(p=>drawSelectionBox(p,S.selectionMode==='single'&&p.trackId===S.selectedTrackId));
-  }
+  // 非 Focus 狀態才使用一般人物選取框。
+  people.forEach(p=>{
+    const selected=S.selectionMode==='single'&&p.trackId===S.selectedTrackId;
+    if(selected&&S.focusBox)drawSelectionBox(p,true);
+  });
 }
-drawFocusedObject();$('#mHeld').textContent=helds.length?helds.map(h=>`${h.side==='left'?'左':'右'}:${h.label}${h.inferred?'*':''}`).join(' / '):'無';$('#mHands').textContent=S.hands?.length?`${S.hands.length} 手`:'0';S.lastResult=result;S.lastSource=source;renderPersonList();updateFocusPanel()}
+
+drawFocusedObject();drawSpecificTargets();$('#mHeld').textContent=helds.length?helds.map(h=>`${h.side==='left'?'左':'右'}:${h.label}${h.inferred?'*':''}`).join(' / '):'無';$('#mHands').textContent=S.hands?.length?`${S.hands.length} 手`:'0';S.lastResult=result;S.lastSource=source;renderPersonList();updateFocusPanel()}
 async function modeRun(m){if(!S.pose)return;const run=m==='image'?'IMAGE':'VIDEO';if(S.poseRunMode!==run){await S.pose.setOptions({runningMode:run,numPoses:m==='image'?4:6,outputSegmentationMasks:true});S.poseRunMode=run}if(S.hand&&S.handRunMode!==run){await S.hand.setOptions({runningMode:run,numHands:4});S.handRunMode=run}if(S.obj&&S.objRunMode!==run){await S.obj.setOptions({runningMode:run});S.objRunMode=run}}
 async function analyzeImage(){if(!S.ready||!S.imageLoaded)return;await modeRun('image');const r=S.pose.detect(img);try{S.hands=S.hand?.detect(img)?.landmarks||[]}catch(e){console.warn('hand detect image',e);S.hands=[]}try{S.objects=S.obj?.detect(img)?.detections||[]}catch(e){console.warn('object detect image',e);S.objects=[]}drawFrame(img,r);setStatus(`完成：辨識 ${r.landmarks?.length||0} 人`, '33 點姿態＋人體遮罩＋手部 21 點＋羽球持物推定')}
 async function analyzeVideo(){if(!S.ready||!video.videoWidth)return;await modeRun('video');const now=performance.now(),r=S.pose.detectForVideo(video,now);if(S.hand&&now-S.lastHandAt>90){S.lastHandAt=now;try{S.hands=S.hand.detectForVideo(video,now)?.landmarks||[]}catch(e){console.warn('hand detect video',e)}}if(S.obj&&now-S.lastObjectAt>220){S.lastObjectAt=now;try{S.objects=S.obj.detectForVideo(video,now)?.detections||[]}catch(e){console.warn('object detect video',e)}}drawFrame(video,r);S.frames++;const t=performance.now();if(t-S.lastT>1000){$('#mFps').textContent=Math.round(S.frames*1000/(t-S.lastT));S.frames=0;S.lastT=t}if(S.mode==='video'&&video.duration){$('#seek').value=Math.round(video.currentTime/video.duration*1000);$('#time').textContent=`${fmt(video.currentTime)} / ${fmt(video.duration)}`}}
 function loop(){if(S.mode==='camera'||(S.mode==='video'&&!video.paused&&!video.ended))analyzeVideo().catch(console.warn);S.raf=requestAnimationFrame(loop)}
 function stopMedia(){cancelAnimationFrame(S.raf);if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}video.pause();video.srcObject=null}
-async function setMode(m){stopMedia();S.mode=m;S.focusPick=null;S.focusType=null;S.focusTrackId=null;S.focusObject=null;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));document.querySelectorAll('.modePanel').forEach(p=>p.classList.remove('active'));$('#panel-'+m).classList.add('active');ctx.clearRect(0,0,canvas.width,canvas.height);$('#mPeople').textContent='0';$('#mHeld').textContent='—';$('#mHands').textContent='—';S.objects=[];S.hands=[];S.personInfos=[];S.tracks=[];if(!S.lockSelection)S.selectedTrackId=null;$('#extractSubject').disabled=true;renderPersonList();updateFocusPanel();setStatus(S.ready?'等待輸入':'AI 模型載入中…',m==='camera'?'相機模式需要 HTTPS 或 localhost':'影像只在瀏覽器端處理')}
+async function setMode(m){stopMedia();S.mode=m;S.focusPick=null;S.focusType=null;S.focusTrackId=null;S.focusObject=null;S.targetAction=null;S.specificBall=null;S.specificRacket=null;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));document.querySelectorAll('.modePanel').forEach(p=>p.classList.remove('active'));$('#panel-'+m).classList.add('active');ctx.clearRect(0,0,canvas.width,canvas.height);$('#mPeople').textContent='0';$('#mHeld').textContent='—';$('#mHands').textContent='—';S.objects=[];S.hands=[];S.personInfos=[];S.tracks=[];if(!S.lockSelection)S.selectedTrackId=null;$('#extractSubject').disabled=true;renderPersonList();updateFocusPanel();setStatus(S.ready?'等待輸入':'AI 模型載入中…',m==='camera'?'相機模式需要 HTTPS 或 localhost':'影像只在瀏覽器端處理')}
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>setMode(b.dataset.mode));
-$('#imageFile').onchange=e=>{const f=e.target.files?.[0];if(!f)return;S.focusPick=null;S.focusType=null;S.focusTrackId=null;S.focusObject=null;$('#extractSubject').disabled=true;img.onload=()=>{S.imageLoaded=true;$('#reanalyze').disabled=false;analyzeImage()};img.src=URL.createObjectURL(f)};$('#reanalyze').onclick=analyzeImage;
+$('#imageFile').onchange=e=>{const f=e.target.files?.[0];if(!f)return;S.focusPick=null;S.focusType=null;S.focusTrackId=null;S.focusObject=null;S.targetAction=null;S.specificBall=null;S.specificRacket=null;clearTargetButtons();$('#extractSubject').disabled=true;img.onload=()=>{S.imageLoaded=true;$('#reanalyze').disabled=false;analyzeImage()};img.src=URL.createObjectURL(f)};$('#reanalyze').onclick=analyzeImage;
 $('#videoFile').onchange=e=>{const f=e.target.files?.[0];if(!f)return;stopMedia();video.src=URL.createObjectURL(f);video.onloadedmetadata=()=>{size(video.videoWidth,video.videoHeight);$('#play').disabled=$('#pause').disabled=$('#seek').disabled=false;$('#time').textContent=`00:00 / ${fmt(video.duration)}`;video.currentTime=0;video.onseeked=()=>analyzeVideo();analyzeVideo()}};$('#play').onclick=async()=>{await video.play();cancelAnimationFrame(S.raf);loop()};$('#pause').onclick=()=>video.pause();$('#seek').oninput=()=>{if(video.duration)video.currentTime=(+$('#seek').value/1000)*video.duration};
 $('#startCamera').onclick=async()=>{try{stopMedia();S.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=S.stream;await video.play();$('#startCamera').disabled=true;$('#stopCamera').disabled=false;$('#startRec').disabled=false;setStatus('即時分析中','33 點姿態＋人體遮罩');cancelAnimationFrame(S.raf);loop()}catch(e){setStatus('相機開啟失敗',e.message)}};$('#stopCamera').onclick=()=>{stopMedia();$('#startCamera').disabled=false;$('#stopCamera').disabled=true;$('#startRec').disabled=true;setStatus('相機已關閉','')};
 $('#startRec').onclick=()=>{try{S.chunks=[];const st=canvas.captureStream(30);S.rec=new MediaRecorder(st,{mimeType:MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm'});S.rec.ondataavailable=e=>{if(e.data.size)S.chunks.push(e.data)};S.rec.onstop=()=>{const blob=new Blob(S.chunks,{type:'video/webm'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`embodied-space-v09-${Date.now()}.webm`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)};S.rec.start();$('#startRec').disabled=true;$('#stopRec').disabled=false;setStatus('REC 錄製中','分析 Overlay 會一起錄製')}catch(e){setStatus('錄製失敗',e.message)}};$('#stopRec').onclick=()=>{if(S.rec?.state==='recording')S.rec.stop();$('#startRec').disabled=false;$('#stopRec').disabled=true};
 function canvasXY(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*canvas.width/r.width,y:(e.clientY-r.top)*canvas.height/r.height}}
-canvas.addEventListener('pointerdown',e=>{const q=canvasXY(e);if(S.manualAction){addManualPoint(q.x,q.y);return}if(S.focusPick==='person'){const p=findPersonByMask(q.x,q.y);if(!p){setFocusText('沒有點到人物主體','請直接點人物身體，而不是外圍矩形。');return}applyPersonFocus(p);return}if(S.focusPick==='object'){const o=findObjectAt(q.x,q.y);if(!o){setFocusText('沒有點到球或球拍','這個位置沒有合格的球 / 拍類偵測；球拍可改用「人工球拍」。');return}applyObjectFocus(o);return}const p=findPersonAt(q.x,q.y);if(!p)return;if(S.editMode==='auto'){setSelectedTrack(p.trackId,true);return}if(S.selectedTrackId!==p.trackId)setSelectedTrack(p.trackId,true);const j=nearestJoint(p,q.x,q.y);if(j){snapshotManual();S.dragJoint={trackId:p.trackId,index:j.i};canvas.setPointerCapture?.(e.pointerId);updateManualHint(`校正 ${JOINT_NAMES[j.i]||'關節'}`,'拖曳到正確位置後放開。')}})
+canvas.addEventListener('pointerdown',async e=>{const q=canvasXY(e);
+if(S.targetAction?.kind==='ball'){applySpecificBall(q);return}
+if(S.targetAction?.kind==='racket'){applySpecificRacketPoint(q);return}
+if(S.manualAction){addManualPoint(q.x,q.y);return}
+if(S.focusPick==='person'){const p=findPersonByMask(q.x,q.y);if(!p){setFocusText('沒有點到人物主體','請直接點人物身體，而不是外圍矩形。');return}applyPersonFocus(p);return}
+if(S.focusPick==='object'){
+  let o=findObjectAt(q.x,q.y);
+  if(!o){
+    setFocusText('全圖沒有辨識到，正在局部放大重試…','若仍失敗，可直接使用「指定球 / 羽球」或「指定球拍」。');
+    o=await localDetectAt(q.x,q.y);
+  }
+  if(!o){setFocusText('自動辨識仍失敗','這不是你的操作問題；請改用「指定球 / 羽球」或「指定球拍」，可直接分析該目標。');return}
+  applyObjectFocus(o);return
+}
+const p=findPersonAt(q.x,q.y);if(!p)return;if(S.editMode==='auto'){setSelectedTrack(p.trackId,true);return}if(S.selectedTrackId!==p.trackId)setSelectedTrack(p.trackId,true);const j=nearestJoint(p,q.x,q.y);if(j){snapshotManual();S.dragJoint={trackId:p.trackId,index:j.i};canvas.setPointerCapture?.(e.pointerId);updateManualHint(`校正 ${JOINT_NAMES[j.i]||'關節'}`,'拖曳到正確位置後放開。')}})
 canvas.addEventListener('pointermove',e=>{if(!S.dragJoint)return;const q=canvasXY(e);manualData(S.dragJoint.trackId).joints[S.dragJoint.index]={x:q.x,y:q.y};redrawLast()})
 canvas.addEventListener('pointerup',()=>{if(S.dragJoint){S.dragJoint=null;updateManualHint('人工校正已套用','藍色點為人工修正。');redrawLast()}})
 
@@ -455,13 +693,16 @@ $('#selectMode').onchange=e=>{S.selectionMode=e.target.value;if(S.selectionMode=
 $('#toggleLock').onclick=()=>{if(!S.selectedTrackId&&S.personInfos.length){S.selectedTrackId=S.personInfos[0].trackId;S.selectionMode='single';$('#selectMode').value='single'}S.lockSelection=!S.lockSelection;if(!S.lockSelection&&S.selectionMode==='all')S.selectedTrackId=null;refreshSelectionUI();renderPersonList();if(S.lastResult&&S.lastSource)drawFrame(S.lastSource,S.lastResult)};
 
 
-$('#focusPerson').onclick=()=>setFocusPick(S.focusPick==='person'?null:'person');
-$('#focusObject').onclick=()=>setFocusPick(S.focusPick==='object'?null:'object');
+$('#focusPerson').onclick=()=>{S.targetAction=null;clearTargetButtons();setFocusPick(S.focusPick==='person'?null:'person')};
+$('#focusObject').onclick=()=>{S.targetAction=null;clearTargetButtons();setFocusPick(S.focusPick==='object'?null:'object')};
+$('#pickBall').onclick=()=>setTargetAction('ball');
+$('#pickRacket').onclick=()=>setTargetAction('racket');
 $('#clearFocus').onclick=clearFocus;
 $('#extractSubject').onclick=extractFocusedSubject;
 $('#dimFocus').onchange=e=>{S.dimFocus=e.target.checked;redrawLast()};
 $('#cleanFocus').onchange=e=>{S.cleanFocus=e.target.checked;redrawLast()};
 $('#focusBox').onchange=e=>{S.focusBox=e.target.checked;redrawLast()};
+$('#manualBallRadius').oninput=e=>{const v=+e.target.value;$('#manualBallRadiusOut').value=`${v} px`;if(S.specificBall){S.specificBall.radius=v;redrawLast()}};
 $('#editMode').onchange=e=>{S.editMode=e.target.value;$('#oEditMode').value=S.editMode==='auto'?'自動':S.editMode==='hybrid'?'混合':'人工';S.manualAction=null;updateManualHint(S.editMode==='auto'?'自動模式':S.editMode==='hybrid'?'AI＋人工校正':'人工標記',S.editMode==='auto'?'點人物可選擇/鎖定。':'拖曳關節，或新增球拍/持物。')};
 $('#addRacket').onclick=()=>{if(S.editMode==='auto'){$('#editMode').value='hybrid';$('#editMode').dispatchEvent(new Event('change'))}S.manualAction={kind:'racket',start:null};updateManualHint('人工球拍：請點握把','再點拍端。')};
 $('#addObject').onclick=()=>{if(S.editMode==='auto'){$('#editMode').value='hybrid';$('#editMode').dispatchEvent(new Event('change'))}S.manualAction={kind:'object',start:null};updateManualHint('人工持物：請點起點','再點物件末端。')};
